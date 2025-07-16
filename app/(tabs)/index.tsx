@@ -10,8 +10,12 @@ import {
 } from 'react-native';
 import { Search, MapPin, Star, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
+import { useCart } from '@/contexts/CartContext';
 import ProviderCard from '@/components/ProviderCard';
 import ProviderDetailModal from '@/components/ProviderDetailModal';
+import CartIcon from '@/components/CartIcon';
+import CartModal from '@/components/CartModal';
+import CheckoutModal from '@/components/CheckoutModal';
 import { mockProviders, type Provider } from '@/data/providers';
 
 const { width } = Dimensions.get('window');
@@ -20,6 +24,11 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+  
+  const { cartCount } = useCart();
 
   // Utilisateur connecté avec points
   const userPoints = 15420;
@@ -29,26 +38,64 @@ export default function HomeScreen() {
     setDetailModalVisible(true);
   };
 
+  const categories = [
+    { name: 'Tous', emoji: '🏪', color: '#00B14F', filter: 'all' },
+    { name: 'Fast Food', emoji: '🍔', color: '#FF6B6B', filter: 'fastfood' },
+    { name: 'Beauté', emoji: '💄', color: '#4ECDC4', filter: 'beauty' },
+    { name: 'Pizza', emoji: '🍕', color: '#45B7D1', filter: 'pizza' },
+    { name: 'Café', emoji: '☕', color: '#96CEB4', filter: 'cafe' },
+  ];
+
+  const handleCategoryPress = (filter: string) => {
+    setSelectedCategory(filter);
+  };
+
+  const getFilteredProviders = () => {
+    if (selectedCategory === 'all') {
+      return mockProviders;
+    }
+    
+    return mockProviders.filter(provider => {
+      switch (selectedCategory) {
+        case 'fastfood':
+          return provider.category.includes('Fast Food');
+        case 'beauty':
+          return provider.category.includes('Beauté') || provider.category.includes('Manucure');
+        case 'pizza':
+          return provider.name.toLowerCase().includes('pizza');
+        case 'cafe':
+          return provider.category.includes('Café');
+        default:
+          return true;
+      }
+    });
+  };
+
   const featuredProviders = mockProviders.slice(0, 3);
-  const allProviders = mockProviders;
+  const filteredProviders = getFilteredProviders();
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.topRow}>
-            <View style={styles.locationContainer}>
-              <MapPin size={20} color="#00B14F" />
-              <Text style={styles.locationText}>Cocody, Abidjan</Text>
-            </View>
-            
-            <View style={styles.pointsContainer}>
-              <Wallet size={18} color="#00B14F" />
-              <Text style={styles.pointsText}>{userPoints.toLocaleString()} pts</Text>
-            </View>
+      {/* Header fixe */}
+      <View style={styles.header}>
+        <View style={styles.topRow}>
+          <View style={styles.locationContainer}>
+            <MapPin size={20} color="#00B14F" />
+            <Text style={styles.locationText}>Cocody, Abidjan</Text>
           </View>
           
+          <View style={styles.pointsContainer}>
+            <Wallet size={18} color="#00B14F" />
+            <Text style={styles.pointsText}>{userPoints.toLocaleString()} pts</Text>
+          </View>
+          
+          <CartIcon onPress={() => setCartModalVisible(true)} />
+        </View>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Contenu scrollable */}
+        <View style={styles.scrollContent}>
           <View style={styles.searchContainer}>
             <Search size={20} color="#8E8E8E" />
             <TextInput
@@ -60,7 +107,6 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-
         {/* Featured Banner */}
         <View style={styles.bannerContainer}>
           <Image
@@ -77,14 +123,19 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Catégories populaires</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
-            {[
-              { name: 'Fast Food', emoji: '🍔', color: '#FF6B6B' },
-              { name: 'Beauté', emoji: '💄', color: '#4ECDC4' },
-              { name: 'Pizza', emoji: '🍕', color: '#45B7D1' },
-              { name: 'Café', emoji: '☕', color: '#96CEB4' },
-              { name: 'Asiatique', emoji: '🍜', color: '#FECA57' },
-            ].map((category, index) => (
-              <TouchableOpacity key={index} style={[styles.categoryCard, { backgroundColor: category.color }]}>
+            {categories.map((category, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={[
+                  styles.categoryCard, 
+                  { 
+                    backgroundColor: selectedCategory === category.filter ? category.color : category.color,
+                    opacity: selectedCategory === category.filter ? 1 : 0.8,
+                    transform: selectedCategory === category.filter ? [{ scale: 1.05 }] : [{ scale: 1 }]
+                  }
+                ]}
+                onPress={() => handleCategoryPress(category.filter)}
+              >
                 <Text style={styles.categoryEmoji}>{category.emoji}</Text>
                 <Text style={styles.categoryName}>{category.name}</Text>
               </TouchableOpacity>
@@ -92,25 +143,29 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Featured Providers */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recommandés pour vous</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {featuredProviders.map((provider) => (
-              <ProviderCard
-                key={provider.id}
-                provider={provider}
-                onPress={handleProviderPress}
-                style={styles.featuredCard}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        {/* Featured Providers - Only show if "Tous" is selected */}
+        {selectedCategory === 'all' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recommandés pour vous</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {featuredProviders.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  onPress={handleProviderPress}
+                  style={styles.featuredCard}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-        {/* All Providers */}
+        {/* Filtered Providers */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tous les prestataires</Text>
-          {allProviders.map((provider) => (
+          <Text style={styles.sectionTitle}>
+            {selectedCategory === 'all' ? 'Tous les prestataires' : `${categories.find(c => c.filter === selectedCategory)?.name}`}
+          </Text>
+          {filteredProviders.map((provider) => (
             <ProviderCard
               key={provider.id}
               provider={provider}
@@ -127,6 +182,20 @@ export default function HomeScreen() {
         provider={selectedProvider}
         userPoints={userPoints}
       />
+
+      <CartModal
+        visible={cartModalVisible}
+        onClose={() => setCartModalVisible(false)}
+        onCheckout={() => {
+          setCartModalVisible(false);
+          setCheckoutModalVisible(true);
+        }}
+      />
+
+      <CheckoutModal
+        visible={checkoutModalVisible}
+        onClose={() => setCheckoutModalVisible(false)}
+      />
     </View>
   );
 }
@@ -141,21 +210,23 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 50,
+    paddingTop: 45,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    paddingBottom: 10,
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    gap: 15,
+    marginBottom: 10,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   locationText: {
     marginLeft: 8,
@@ -176,6 +247,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  scrollContent: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -234,20 +313,20 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
   },
   categoryCard: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
   },
   categoryEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 24,
+    marginBottom: 6,
   },
   categoryName: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
   },

@@ -33,7 +33,7 @@ export default function QRCodeDisplay({ provider, timer, onExpire }: QRCodeDispl
           <View 
             style={[
               styles.progressFill, 
-              { width: `${(timer / 15) * 100}%` }
+              { width: `${(timer / 10) * 100}%` }
             ]} 
           />
         </View>

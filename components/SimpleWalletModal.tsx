@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  ScrollView,
   Animated,
+  ScrollView,
 } from 'react-native';
-import { X, CreditCard, Smartphone, Plus } from 'lucide-react-native';
+import { X, Smartphone, Plus, CreditCard, Wallet } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 
-interface WalletModalProps {
+interface SimpleWalletModalProps {
   visible: boolean;
   onClose: () => void;
   user: {
@@ -22,10 +22,10 @@ interface WalletModalProps {
   };
 }
 
-export default function WalletModal({ visible, onClose, user }: WalletModalProps) {
+export default function SimpleWalletModal({ visible, onClose, user }: SimpleWalletModalProps) {
   const [activeTab, setActiveTab] = useState<'recharge' | 'history'>('recharge');
   const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<'mtn' | 'orange' | 'moov' | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -35,12 +35,12 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
@@ -51,15 +51,21 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
   }, [visible]);
 
   const paymentMethods = [
-    { id: 'mtn', name: 'MTN Mobile Money', color: '#FFCC00' },
-    { id: 'orange', name: 'Orange Money', color: '#FF6600' },
-    { id: 'moov', name: 'Moov Money', color: '#007FFF' },
+    { id: 'mtn', name: 'MTN Mobile Money', color: '#FFCC00', icon: Smartphone },
+    { id: 'orange', name: 'Orange Money', color: '#FF6600', icon: Smartphone },
+    { id: 'moov', name: 'Moov Money', color: '#007FFF', icon: Smartphone },
+    { id: 'wave', name: 'Wave', color: '#00D4AA', icon: Smartphone },
+    { id: 'visa', name: 'Visa Card', color: '#1A1F71', icon: CreditCard },
+    { id: 'mastercard', name: 'Mastercard', color: '#EB001B', icon: CreditCard },
+    { id: 'paypal', name: 'PayPal', color: '#0070BA', icon: Wallet },
   ];
 
   const transactions = [
     { id: '1', type: 'recharge', amount: 10000, points: 20000, date: '2024-01-15', method: 'MTN' },
     { id: '2', type: 'payment', amount: -2500, points: -5000, date: '2024-01-14', provider: 'Chez Tante Marie' },
     { id: '3', type: 'recharge', amount: 5000, points: 10000, date: '2024-01-13', method: 'Orange' },
+    { id: '4', type: 'payment', amount: -1800, points: -3600, date: '2024-01-12', provider: 'Beauty Palace' },
+    { id: '5', type: 'recharge', amount: 15000, points: 30000, date: '2024-01-11', method: 'Wave' },
   ];
 
   const handleRecharge = () => {
@@ -75,9 +81,11 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
     }
 
     const points = numericAmount * 2; // 1 FCFA = 2 points
+    const selectedPaymentMethod = paymentMethods.find(m => m.id === selectedMethod);
+    
     Alert.alert(
       'Rechargement',
-      `Confirmer le rechargement de ${numericAmount.toLocaleString()} FCFA (${points.toLocaleString()} points) via ${paymentMethods.find(m => m.id === selectedMethod)?.name}?`,
+      `Confirmer le rechargement de ${numericAmount.toLocaleString()} FCFA (${points.toLocaleString()} points) via ${selectedPaymentMethod?.name}?`,
       [
         { text: 'Annuler', style: 'cancel' },
         { 
@@ -97,12 +105,12 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 0.9,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -110,10 +118,6 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
       setSelectedMethod(null);
       onClose();
     });
-  };
-
-  const handleOverlayPress = () => {
-    handleClose();
   };
 
   return (
@@ -126,7 +130,7 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
       <TouchableOpacity 
         style={styles.overlay} 
         activeOpacity={1} 
-        onPress={handleOverlayPress}
+        onPress={() => {}} // Empêche la fermeture sur clic overlay
       >
         <Animated.View 
           style={[
@@ -137,7 +141,10 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
             }
           ]}
           onStartShouldSetResponder={() => true}
-          onResponderGrant={(e) => e.stopPropagation()}
+          onResponderGrant={(e) => {
+            e.stopPropagation();
+            return true;
+          }}
         >
           <View style={styles.header}>
             <Text style={styles.title}>Mon Portefeuille</Text>
@@ -147,12 +154,12 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
           </View>
 
           {/* Balance Info */}
-          <View style={styles.balanceInfo}>
-            <View style={styles.balanceItem}>
+          <View style={styles.balanceSection}>
+            <View style={styles.balanceRow}>
               <Text style={styles.balanceLabel}>Points</Text>
               <Text style={styles.balanceValue}>{user.points.toLocaleString()}</Text>
             </View>
-            <View style={styles.balanceItem}>
+            <View style={styles.balanceRow}>
               <Text style={styles.balanceLabel}>Solde</Text>
               <Text style={styles.balanceValue}>{user.balance.toLocaleString()} FCFA</Text>
             </View>
@@ -178,7 +185,12 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Content */}
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            onStartShouldSetResponder={() => true}
+          >
             {activeTab === 'recharge' ? (
               <View style={styles.rechargeContent}>
                 <Text style={styles.sectionTitle}>Montant à recharger</Text>
@@ -189,6 +201,9 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
                   onChangeText={setAmount}
                   keyboardType="numeric"
                   placeholderTextColor="#8E8E8E"
+                  onStartShouldSetResponder={() => true}
+                  onResponderGrant={() => true}
+                  onTouchStart={(e) => e.stopPropagation()}
                 />
                 {amount && (
                   <Text style={styles.pointsInfo}>
@@ -204,22 +219,24 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
                       styles.paymentMethod,
                       selectedMethod === method.id && styles.selectedPaymentMethod,
                     ]}
-                    onPress={() => setSelectedMethod(method.id as any)}
+                    onPress={() => setSelectedMethod(method.id)}
                   >
                     <View style={[styles.methodIcon, { backgroundColor: method.color }]}>
-                      <Smartphone size={20} color="#fff" />
+                      <method.icon size={20} color="#fff" />
                     </View>
                     <Text style={styles.methodName}>{method.name}</Text>
+                    <View style={[
+                      styles.radioButton,
+                      selectedMethod === method.id && styles.radioButtonSelected
+                    ]}>
+                      {selectedMethod === method.id && <View style={styles.radioButtonInner} />}
+                    </View>
                   </TouchableOpacity>
                 ))}
-
-                <TouchableOpacity style={styles.rechargeButton} onPress={handleRecharge}>
-                  <Plus size={20} color="#fff" />
-                  <Text style={styles.rechargeButtonText}>Recharger</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.historyContent}>
+                <Text style={styles.sectionTitle}>Historique des transactions</Text>
                 {transactions.map((transaction) => (
                   <View key={transaction.id} style={styles.transactionItem}>
                     <View style={styles.transactionIcon}>
@@ -261,6 +278,23 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
               </View>
             )}
           </ScrollView>
+
+          {/* Footer avec bouton Recharger */}
+          {activeTab === 'recharge' && (
+            <View style={styles.footer}>
+              <TouchableOpacity 
+                style={[
+                  styles.rechargeButton,
+                  (!amount || !selectedMethod) && styles.rechargeButtonDisabled
+                ]} 
+                onPress={handleRecharge}
+                disabled={!amount || !selectedMethod}
+              >
+                <Plus size={20} color="#fff" />
+                <Text style={styles.rechargeButtonText}>Recharger</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </TouchableOpacity>
     </Modal>
@@ -287,7 +321,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
   },
@@ -299,33 +332,36 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 5,
   },
-  balanceInfo: {
+  balanceSection: {
     flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
   },
-  balanceItem: {
+  balanceRow: {
     flex: 1,
     alignItems: 'center',
   },
   balanceLabel: {
     fontSize: 14,
     color: '#8E8E8E',
-    marginBottom: 5,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   balanceValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
+    textAlign: 'center',
   },
   tabs: {
     flexDirection: 'row',
     backgroundColor: '#F5F5F5',
+    margin: 20,
     borderRadius: 12,
     padding: 4,
-    marginBottom: 20,
   },
   tab: {
     flex: 1,
@@ -350,13 +386,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   rechargeContent: {
-    gap: 20,
+    paddingBottom: 20,
+  },
+  historyContent: {
+    paddingBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    marginBottom: 10,
+    marginBottom: 15,
+    marginTop: 10,
   },
   amountInput: {
     borderWidth: 1,
@@ -366,12 +406,15 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 16,
     color: '#000',
+    marginBottom: 10,
+    backgroundColor: '#fff',
   },
   pointsInfo: {
     fontSize: 14,
     color: '#00B14F',
     fontWeight: '600',
     textAlign: 'center',
+    marginBottom: 20,
   },
   paymentMethod: {
     flexDirection: 'row',
@@ -381,6 +424,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
     borderRadius: 12,
     marginBottom: 10,
+    backgroundColor: '#fff',
   },
   selectedPaymentMethod: {
     borderColor: '#00B14F',
@@ -395,27 +439,29 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   methodName: {
+    flex: 1,
     fontSize: 16,
     color: '#000',
     fontWeight: '500',
   },
-  rechargeButton: {
-    backgroundColor: '#00B14F',
-    flexDirection: 'row',
-    alignItems: 'center',
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 20,
+    alignItems: 'center',
   },
-  rechargeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  radioButtonSelected: {
+    borderColor: '#00B14F',
+    backgroundColor: '#00B14F',
   },
-  historyContent: {
-    gap: 15,
+  radioButtonInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
   },
   transactionItem: {
     flexDirection: 'row',
@@ -423,6 +469,7 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
+    marginBottom: 10,
   },
   transactionIcon: {
     width: 40,
@@ -457,5 +504,36 @@ const styles = StyleSheet.create({
   transactionPoints: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  footer: {
+    padding: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+    backgroundColor: '#fff',
+  },
+  rechargeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00B14F',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#00B14F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  rechargeButtonDisabled: {
+    backgroundColor: '#ccc',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  rechargeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

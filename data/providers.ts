@@ -16,9 +16,9 @@ export const mockProviders: Provider[] = [
     category: 'Cuisine Africaine',
     image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
     rating: 4.8,
-    estimatedTime: '25-35 min',
+    estimatedTime: '25-35 min', // Gardé pour compatibilité mais non affiché
     location: 'Cocody',
-    discount: 15,
+    discount: 25, // Augmenté pour plus d'économies
   },
   {
     id: '2',
@@ -28,7 +28,7 @@ export const mockProviders: Provider[] = [
     rating: 4.6,
     estimatedTime: '45-60 min',
     location: 'Plateau',
-    discount: 20,
+    discount: 30, // Augmenté pour plus d'économies
   },
   {
     id: '3',
@@ -38,7 +38,7 @@ export const mockProviders: Provider[] = [
     rating: 4.4,
     estimatedTime: '20-30 min',
     location: 'Marcory',
-    discount: 10,
+    discount: 15, // Augmenté légèrement
   },
   {
     id: '4',
@@ -48,7 +48,7 @@ export const mockProviders: Provider[] = [
     rating: 4.7,
     estimatedTime: '15-25 min',
     location: 'Zone 4',
-    discount: 5,
+    discount: 12, // Augmenté pour avoir des économies visibles
   },
   {
     id: '5',
@@ -58,7 +58,7 @@ export const mockProviders: Provider[] = [
     rating: 4.9,
     estimatedTime: '30-45 min',
     location: 'Riviera',
-    discount: 25,
+    discount: 35, // Le plus élevé pour attirer l'attention
   },
   {
     id: '6',
@@ -68,6 +68,6 @@ export const mockProviders: Provider[] = [
     rating: 4.2,
     estimatedTime: '15-25 min',
     location: 'Adjamé',
-    discount: 8,
+    discount: 18, // Augmenté pour plus d'attractivité
   },
 ];

@@ -9,6 +9,10 @@ import {
 } from 'react-native';
 import { Clock, CircleCheck as CheckCircle, Circle as XCircle, X, Wallet, MapPin } from 'lucide-react-native';
 import { useState } from 'react';
+import { useCart } from '@/contexts/CartContext';
+import CartIcon from '@/components/CartIcon';
+import CartModal from '@/components/CartModal';
+import CheckoutModal from '@/components/CheckoutModal';
 
 const mockOrders = [
   {
@@ -19,11 +23,12 @@ const mockOrders = [
     items: ['Thiéboudiènne', 'Jus de gingembre'],
     pointsUsed: 9000,
     originalPrice: 4500,
-    finalPrice: 3825, // Avec réduction de 15%
+    finalPrice: 3825,
     discount: 15,
     cashback: 10,
     date: '2024-01-15',
     time: '14:30',
+    paymentMethod: 'points',
   },
   {
     id: '2',
@@ -33,11 +38,12 @@ const mockOrders = [
     items: ['Manucure française', 'Pose gel'],
     pointsUsed: 12800,
     originalPrice: 8000,
-    finalPrice: 6400, // Avec réduction de 20%
+    finalPrice: 6400,
     discount: 20,
     cashback: 10,
     date: '2024-01-14',
     time: '16:00',
+    paymentMethod: 'points',
   },
   {
     id: '3',
@@ -47,20 +53,24 @@ const mockOrders = [
     items: ['Pizza Margherita', 'Coca Cola'],
     pointsUsed: 0,
     originalPrice: 3200,
-    finalPrice: 2880, // Avec réduction de 10%
+    finalPrice: 2880,
     discount: 10,
     cashback: 0,
     date: '2024-01-13',
     time: '19:15',
+    paymentMethod: 'restaurant',
   },
 ];
 
-// Utilisateur connecté avec points
 const userPoints = 15420;
 
 export default function OrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+
+  const { cartCount } = useCart();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -108,6 +118,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header fixe */}
       <View style={styles.header}>
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
@@ -119,18 +130,21 @@ export default function OrdersScreen() {
             <Wallet size={18} color="#00B14F" />
             <Text style={styles.pointsText}>{userPoints.toLocaleString()} pts</Text>
           </View>
+           
+           <CartIcon onPress={() => setCartModalVisible(true)} />
         </View>
-        <Text style={styles.title}>Mes Commandes</Text>
-        <Text style={styles.subtitle}>Suivez vos réservations et achats</Text>
       </View>
 
-      <ScrollView style={styles.ordersContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Contenu scrollable */}
+        <View style={styles.scrollContent}>
+          <Text style={styles.title}>Mes Commandes</Text>
+          <Text style={styles.subtitle}>Suivez vos réservations et achats</Text>
+        </View>
+        
+        <View style={styles.ordersContainer}>
         {mockOrders.map((order) => (
-          <TouchableOpacity 
-            key={order.id} 
-            style={styles.orderCard}
-            onPress={() => handleOrderPress(order)}
-          >
+          <View key={order.id} style={styles.orderCard}>
             <View style={styles.orderHeader}>
               <Image source={{ uri: order.providerImage }} style={styles.providerImage} />
               <View style={styles.orderInfo}>
@@ -144,36 +158,26 @@ export default function OrdersScreen() {
                     {getStatusText(order.status)}
                   </Text>
                 </View>
-              </View>
-            </View>
-
-            <View style={styles.orderItems}>
-              {order.items.map((item, index) => (
-                <Text key={index} style={styles.itemText}>
-                  • {item}
+                <Text style={styles.paymentMethod}>
+                  {order.paymentMethod === 'points' ? 'Payé en points' : 'Payé au restaurant'}
                 </Text>
-              ))}
+              </View>
             </View>
 
             <View style={styles.orderFooter}>
               <View style={styles.pricing}>
-                <Text style={styles.discountText}>
-                  Réduction: -{order.discount}%
-                </Text>
                 <Text style={styles.pointsUsedText}>
-                  Points utilisés: {order.pointsUsed.toLocaleString()} pts
+                  {order.pointsUsed > 0 ? `${order.pointsUsed.toLocaleString()} pts utilisés` : 'Aucun point utilisé'}
                 </Text>
-                {order.cashback > 0 && (
-                  <Text style={styles.cashbackText}>
-                    Cashback: +{order.cashback} pts
-                  </Text>
-                )}
               </View>
-              <TouchableOpacity style={styles.detailsButton}>
+              <TouchableOpacity 
+                style={styles.detailsButton}
+                onPress={() => handleOrderPress(order)}
+              >
                 <Text style={styles.detailsButtonText}>Détails</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
 
         {mockOrders.length === 0 && (
@@ -184,6 +188,7 @@ export default function OrdersScreen() {
             </Text>
           </View>
         )}
+        </View>
       </ScrollView>
 
       {/* Modal de détails */}
@@ -204,34 +209,36 @@ export default function OrdersScreen() {
 
             {selectedOrder && (
               <ScrollView style={styles.modalContent}>
+                <View style={styles.orderItemsModal}>
+                  <Text style={styles.itemsTitle}>Articles commandés:</Text>
+                  {selectedOrder.items.map((item: string, index: number) => (
+                    <Text key={index} style={styles.itemModal}>• {item}</Text>
+                  ))}
+                </View>
+
                 <View style={styles.priceComparison}>
-                  <Text style={styles.comparisonTitle}>Comparaison des prix</Text>
+                  <Text style={styles.comparisonTitle}>Informations de paiement</Text>
                   
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Prix sans l'application:</Text>
-                    <Text style={styles.originalPriceModal}>
-                      {selectedOrder.originalPrice.toLocaleString()} FCFA
+                    <Text style={styles.priceLabel}>Méthode de paiement:</Text>
+                    <Text style={styles.paymentMethodModal}>
+                      {selectedOrder.paymentMethod === 'points' ? 'Points' : 'Paiement au restaurant'}
                     </Text>
                   </View>
+                  
+                  {selectedOrder.pointsUsed > 0 && (
+                    <View style={styles.pointsRow}>
+                      <Text style={styles.pointsLabel}>Points utilisés:</Text>
+                      <Text style={styles.pointsUsedModal}>
+                        {selectedOrder.pointsUsed.toLocaleString()} pts
+                      </Text>
+                    </View>
+                  )}
                   
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Prix avec réduction ({selectedOrder.discount}%):</Text>
-                    <Text style={styles.finalPriceModal}>
-                      {selectedOrder.finalPrice.toLocaleString()} FCFA
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel}>Économies réalisées:</Text>
-                    <Text style={styles.savingsAmount}>
-                      {(selectedOrder.originalPrice - selectedOrder.finalPrice).toLocaleString()} FCFA
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.pointsRow}>
-                    <Text style={styles.pointsLabel}>Points utilisés:</Text>
-                    <Text style={styles.pointsUsedModal}>
-                      {selectedOrder.pointsUsed.toLocaleString()} pts
+                    <Text style={styles.priceLabel}>Réduction appliquée:</Text>
+                    <Text style={styles.discountModal}>
+                      -{selectedOrder.discount}%
                     </Text>
                   </View>
                   
@@ -244,18 +251,25 @@ export default function OrdersScreen() {
                     </View>
                   )}
                 </View>
-
-                <View style={styles.orderItemsModal}>
-                  <Text style={styles.itemsTitle}>Articles commandés:</Text>
-                  {selectedOrder.items.map((item: string, index: number) => (
-                    <Text key={index} style={styles.itemModal}>• {item}</Text>
-                  ))}
-                </View>
               </ScrollView>
             )}
           </View>
         </View>
       </Modal>
+
+      <CartModal
+        visible={cartModalVisible}
+        onClose={() => setCartModalVisible(false)}
+        onCheckout={() => {
+          setCartModalVisible(false);
+          setCheckoutModalVisible(true);
+        }}
+      />
+
+      <CheckoutModal
+        visible={checkoutModalVisible}
+        onClose={() => setCheckoutModalVisible(false)}
+      />
     </View>
   );
 }
@@ -267,21 +281,23 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 50,
+    paddingTop: 45,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    paddingBottom: 10,
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    gap: 15,
+    marginBottom: 10,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   locationText: {
     marginLeft: 8,
@@ -302,6 +318,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   title: {
     fontSize: 28,
@@ -355,45 +382,30 @@ const styles = StyleSheet.create({
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   statusText: {
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',
   },
-  orderItems: {
-    marginBottom: 15,
-    paddingLeft: 10,
-  },
-  itemText: {
-    fontSize: 14,
+  paymentMethod: {
+    fontSize: 12,
     color: '#666',
-    marginBottom: 2,
+    fontStyle: 'italic',
   },
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   pricing: {
     flex: 1,
-  },
-  discountText: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    fontWeight: '600',
-    marginBottom: 2,
   },
   pointsUsedText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#00B14F',
-    marginBottom: 2,
-  },
-  cashbackText: {
-    fontSize: 12,
-    color: '#00B14F',
-    fontWeight: '600',
   },
   detailsButton: {
     backgroundColor: '#00B14F',
@@ -450,11 +462,27 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
   },
-  priceComparison: {
+  orderItemsModal: {
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
+  },
+  itemsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 10,
+  },
+  itemModal: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  priceComparison: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 15,
   },
   comparisonTitle: {
     fontSize: 16,
@@ -471,38 +499,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  originalPriceModal: {
+  paymentMethodModal: {
     fontSize: 14,
-    color: '#8E8E8E',
-    textDecorationLine: 'line-through',
-  },
-  finalPriceModal: {
-    fontSize: 14,
-    color: '#FF6B6B',
-    fontWeight: 'bold',
-  },
-  savingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-  },
-  savingsLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
     color: '#000',
-  },
-  savingsAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#00B14F',
+    fontWeight: '500',
   },
   pointsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginBottom: 8,
   },
   pointsLabel: {
     fontSize: 14,
@@ -512,6 +517,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  discountModal: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
   },
   cashbackRow: {
     flexDirection: 'row',
@@ -527,20 +537,145 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#00B14F',
   },
-  orderItemsModal: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 15,
+  // Styles pour la commande en cours
+  currentOrderSection: {
+    marginBottom: 25,
   },
-  itemsTitle: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 10,
+    marginBottom: 15,
   },
-  itemModal: {
+  currentOrderCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+  },
+  currentOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 15,
+  },
+  currentOrderInfo: {
+    flex: 1,
+  },
+  currentOrderTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#00B14F',
+    marginBottom: 4,
+  },
+  itemCount: {
     fontSize: 14,
     color: '#666',
+  },
+  viewCartButton: {
+    backgroundColor: '#F0F9F4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  viewCartButtonText: {
+    color: '#00B14F',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cartItemsList: {
+    marginBottom: 15,
+  },
+  cartItemPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  cartItemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  cartItemInfo: {
+    flex: 1,
+  },
+  cartItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  cartItemProvider: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  cartItemCustomizations: {
+    fontSize: 11,
+    color: '#888',
+  },
+  cartItemControls: {
+    alignItems: 'flex-end',
+  },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    padding: 2,
     marginBottom: 4,
+  },
+  quantityButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quantityButtonDisabled: {
+    backgroundColor: '#F0F0F0',
+  },
+  quantityText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+    marginHorizontal: 8,
+  },
+  cartItemPrice: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  showMoreButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  showMoreText: {
+    fontSize: 12,
+    color: '#00B14F',
+    fontWeight: '600',
+  },
+  checkoutButton: {
+    backgroundColor: '#000',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  checkoutButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
