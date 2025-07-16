@@ -1,80 +1,106 @@
-# Bolt Expo Starter
+# Afrismile & Kolofap Mobile Application
 
-Ce projet est une application mobile React Native construite avec Expo et TypeScript. Il utilise Expo Router pour la navigation et inclut plusieurs fonctionnalités modernes pour le développement mobile.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/yourusername/project) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 🚀 Technologies principales
+## 📱 À propos du projet
 
-- React Native avec TypeScript
-- Expo SDK 53
-- Expo Router pour la navigation
-- React Navigation
-- Lucide Icons pour les icônes
-- Expo Camera pour les fonctionnalités de caméra
-- Expo Blur pour les effets visuels
-- Expo Haptics pour les retours haptiques
-- Expo WebView pour les vues web intégrées
+Cette application mobile est développée avec Expo et React Native, offrant une expérience utilisateur fluide et moderne. Elle est conçue pour fonctionner sur iOS et Android, avec une interface web également disponible.
 
-## 📋 Prérequis
+## 🚀 Technologies utilisées
 
-- Node.js (version LTS recommandée)
+- **Framework**: Expo Router (React Native)
+- **Langage**: TypeScript
+- **Base de données**: Supabase
+- **UI Components**:
+  - Expo UI Components
+  - Lucide React Native
+  - React Native Gesture Handler
+  - React Native Reanimated
+
+## 🛠️ Configuration requise
+
+- Node.js (version recommandée: 18.x ou supérieure)
 - Expo CLI
 - TypeScript
-- Un éditeur de code (VS Code recommandé)
+- Git
 
-## 🛠️ Installation
+## 📦 Installation
 
-1. Clonez le repository
-2. Installez les dépendances :
+1. Cloner le repository
+```bash
+git clone https://github.com/yourusername/project.git
+cd project
+```
+
+2. Installer les dépendances
 ```bash
 npm install
 ```
 
-3. Lancez l'application en développement :
+3. Configurer les variables d'environnement
+Créez un fichier `.env` à la racine du projet et ajoutez vos configurations (voir `.env.example`)
+
+4. Démarrer le projet
 ```bash
 npm run dev
 ```
 
-## 📱 Structure du projet
+## 🏃‍♂️ Scripts disponibles
+
+- `npm run dev`: Démarrer l'application en mode développement
+- `npm run build:web`: Générer la version web de l'application
+- `npm run lint`: Vérifier le code avec ESLint
+
+## 📁 Structure du projet
 
 ```
 project/
-├── app/              # Composants de l'application
-│   ├── (tabs)/      # Navigation tabulée
-│   └── _layout.tsx  # Layout principal
-├── components/       # Composants réutilisables
-├── data/            # Données statiques
-├── hooks/           # Hooks personnalisés
-└── assets/          # Ressources statiques
+├── app/                 # Routes et pages de l'application
+├── components/          # Composants réutilisables
+├── contexts/           # Contextes React
+├── data/               # Données statiques
+├── hooks/             # Hooks personnalisés
+├── lib/               # Fonctions utilitaires
+├── supabase/          # Configuration Supabase
+└── types/             # Types TypeScript
 ```
 
-## 🎯 Fonctionnalités
+## 📱 Fonctionnalités principales
 
-- Navigation tabulée
-- Interface utilisateur moderne avec TypeScript
-- Support pour les icônes personnalisées
-- Intégration de la caméra
-- Effets visuels (blur, gradients)
-- Retours haptiques
-- Support webview
-- Gestion des liens et du splash screen
+- Navigation fluide avec Expo Router
+- Support multi-plateformes (iOS, Android, Web)
+- Interface utilisateur moderne et réactive
+- Intégration avec Supabase pour la gestion des données
+- Support des animations natives
+- Gestion des états avec React Context
 
-## 🚀 Scripts disponibles
+## 🔧 Configuration
 
-- `npm run dev`: Lance l'application en mode développement
-- `npm run build:web`: Exporte la version web de l'application
-- `npm run lint`: Lance l'analyse de code
+### Variables d'environnement
+Créez un fichier `.env` à la racine du projet avec les variables suivantes :
+```env
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+```
 
-## 📝 Configuration
+## 📝 Contribuer
 
-Le projet utilise plusieurs fichiers de configuration :
-- `tsconfig.json` pour TypeScript
-- `.prettierrc` pour le formatage du code
-- `app.json` pour la configuration Expo
+1. Fork le repository
+2. Créez votre branche de fonctionnalité (`git checkout -b feature/amazing-feature`)
+3. Commit vos changements (`git commit -m 'Add some amazing feature'`)
+4. Push vers la branche (`git push origin feature/amazing-feature`)
+5. Ouvrez une Pull Request
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
+Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## 👥 Contributing
+## 👥 Auteurs
 
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à soumettre une pull request.
+- **Brian BIENDOU** - _Développeur principal_ - [Brian BIENDOU](https://github.com/brianbiendou)
+
+## 🙏 Remerciements
+
+- Merci à l'équipe Expo pour leur excellent framework
+- Merci à la communauté React Native pour leur soutien
+- Merci à tous les contributeurs à ce projet
