@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # 🌟 Application Mobile Afrismile & Kolofap
 - 🔄 **Conversion automatique** : 1 point = 62 FCFA
@@ -261,3 +262,6 @@ Ce projet est développé pour l'écosystème numérique africain avec focus sur
 ---
 
 **Développé avec ❤️ pour l'Afrique digitale**
+=======
+# AfriSmile_and_Kolofap
+>>>>>>> 488b87bc1835e21b14fcb3aa0b3644066ca2ef0e
