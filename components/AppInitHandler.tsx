@@ -46,10 +46,8 @@ export default function AppInitHandler() {
       setInitialShowComplete(true);
     };
     
-    // Attendre un peu avant de montrer le popup pour laisser l'app se charger
-    setTimeout(() => {
-      checkPromoPopupStatus();
-    }, 2000);
+    // Affichage instantané du popup
+    checkPromoPopupStatus();
   }, []);
   
   // Vérifier si l'utilisateur vient de se connecter
