@@ -30,6 +30,31 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [showCouponModal, setShowCouponModal] = useState(false);
+  
+  // Animation pour le texte promotionnel
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Animation de pulsation pour le texte promotionnel
+  useEffect(() => {
+    if (visible) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [visible]);
 
   // Écouter les changements de visible depuis les props
   useEffect(() => {
@@ -193,11 +218,10 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
 
                 <View style={styles.quantityControls}>
                   <TouchableOpacity
-                    style={[styles.quantityButton, item.quantity <= 1 && styles.quantityButtonDisabled]}
-                    onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                    disabled={item.quantity <= 1}
+                    style={[styles.quantityButton]}
+                    onPress={() => item.quantity <= 1 ? removeFromCart(item.id) : updateQuantity(item.id, item.quantity - 1)}
                   >
-                    <Minus size={16} color={item.quantity <= 1 ? "#ccc" : "#000"} />
+                    <Minus size={16} color="#000" />
                   </TouchableOpacity>
                   
                   <Text style={styles.quantityText}>{item.quantity}</Text>
@@ -233,15 +257,22 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
               )}
             </View>
             
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={styles.couponButton} 
-                onPress={() => setShowCouponModal(true)}
+            <View style={styles.promoContainer}>
+              <Animated.Text 
+                style={[
+                  styles.promoText,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: Animated.add(0.7, Animated.multiply(pulseAnim, 0.3))
+                  }
+                ]}
+                numberOfLines={2}
               >
-                <Ticket size={16} color="#FF6B6B" />
-                <Text style={styles.couponButtonText}>Coupons</Text>
-              </TouchableOpacity>
-              
+                Passez la commande pour profiter des incroyables réductions!
+              </Animated.Text>
+            </View>
+            
+            <View style={styles.actionButtons}>
               <TouchableOpacity 
                 style={styles.checkoutButton} 
                 onPress={handleCheckout}
@@ -453,5 +484,19 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  promoContainer: {
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  promoText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    letterSpacing: 0.5,
   },
 });
