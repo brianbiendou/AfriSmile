@@ -11,6 +11,7 @@ import { X, Send, Download, ArrowUpRight, ArrowDownLeft } from 'lucide-react-nat
 import { useState, useEffect, useRef } from 'react';
 import { KolofapUser, PointsTransaction } from '@/types/kolofap';
 import { getTransactionHistory } from '@/lib/kolofap';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface TransactionHistoryModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export default function TransactionHistoryModal({
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -190,7 +192,7 @@ export default function TransactionHistoryModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={() => {}} // Empêche la fermeture sur clic overlay
       >
@@ -198,6 +200,14 @@ export default function TransactionHistoryModal({
           style={[
             styles.container,
             {
+              width: responsiveStyles.container.maxWidth,
+              maxHeight: responsiveStyles.container.maxHeight,
+              borderRadius: responsiveStyles.container.borderRadius,
+              shadowColor: responsiveStyles.container.shadowColor,
+              shadowOffset: responsiveStyles.container.shadowOffset,
+              shadowOpacity: responsiveStyles.container.shadowOpacity,
+              shadowRadius: responsiveStyles.container.shadowRadius,
+              elevation: responsiveStyles.container.elevation,
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }],
             }
@@ -205,7 +215,8 @@ export default function TransactionHistoryModal({
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
-          <View style={styles.header}>
+          <View style={responsiveStyles.header}>
+            <Text style={responsiveStyles.title}>Historique des transactions</Text>
             <Text style={styles.title}>Historique des transactions</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <X size={24} color="#6B7280" />

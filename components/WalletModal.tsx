@@ -12,6 +12,7 @@ import {
 import { X, CreditCard, Smartphone, Plus } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { fcfaToPoints, formatPointsWithFcfa } from '@/utils/pointsConversion';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface WalletModalProps {
   visible: boolean;
@@ -28,6 +29,7 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<'mtn' | 'orange' | 'moov' | null>(null);
 
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -126,7 +128,7 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={handleOverlayPress}
       >
@@ -136,14 +138,17 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
             {
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }],
+              width: responsiveStyles.container.width,
+              maxWidth: responsiveStyles.container.maxWidth,
+              borderRadius: responsiveStyles.container.borderRadius,
             }
           ]}
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Mon Portefeuille</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <View style={responsiveStyles.header}>
+            <Text style={responsiveStyles.title}>Mon Portefeuille</Text>
+            <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
               <X size={24} color="#8E8E8E" />
             </TouchableOpacity>
           </View>
@@ -180,7 +185,7 @@ export default function WalletModal({ visible, onClose, user }: WalletModalProps
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView style={responsiveStyles.content} showsVerticalScrollIndicator={false}>
             {activeTab === 'recharge' ? (
               <View style={styles.rechargeContent}>
                 <Text style={styles.sectionTitle}>Montant à recharger</Text>

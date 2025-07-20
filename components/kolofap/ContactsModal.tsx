@@ -13,6 +13,7 @@ import { X, Users, Plus, Search, Star } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { KolofapUser, Contact } from '@/types/kolofap';
 import { getContacts, addContact } from '@/lib/kolofap';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface ContactsModalProps {
   visible: boolean;

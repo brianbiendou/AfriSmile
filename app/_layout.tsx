@@ -5,8 +5,11 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { AppProvider } from '@/contexts/AppContext';
+import { CouponProvider } from '@/contexts/CouponContext';
 import AuthScreen from '@/components/AuthScreen';
 import LoadingScreen from '@/components/LoadingScreen';
+import GlobalCouponAnimation from '@/components/GlobalCouponAnimation';
+import AppInitHandler from '@/components/AppInitHandler';
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -20,15 +23,21 @@ function AppContent() {
   }
 
   return (
-    <Stack 
-      screenOptions={{ 
-        headerShown: false,
-        animation: 'default'
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <>
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+          animation: 'default'
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      {/* L'animation globale de coupon, visible quelle que soit la page active */}
+      {isAuthenticated && <GlobalCouponAnimation />}
+      {/* Gestionnaire d'initialisation de l'application qui affiche les promos */}
+      {isAuthenticated && <AppInitHandler />}
+    </>
   );
 }
 
@@ -39,8 +48,10 @@ export default function RootLayout() {
     <AppProvider>
       <AuthProvider>
         <CartProvider>
-          <AppContent />
-          <StatusBar style="auto" />
+          <CouponProvider>
+            <AppContent />
+            <StatusBar style="auto" />
+          </CouponProvider>
         </CartProvider>
       </AuthProvider>
     </AppProvider>

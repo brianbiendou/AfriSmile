@@ -17,7 +17,12 @@ import { useCart } from '@/contexts/CartContext';
 import QRCodeDisplay from '@/components/QRCodeDisplay';
 import LoadingScreen from '@/components/LoadingScreen';
 import ProductCustomizationModal from '@/components/ProductCustomizationModal';
+import ExtrasSelectionModal from '@/components/ExtrasSelectionModal';
 import UnsoldProductsModal from '@/components/UnsoldProductsModal';
+import pricingSystem from '@/utils/pricingSystem';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
+import { mockExtras } from '@/data/extras';
+import { eventService, APP_EVENTS } from '@/utils/eventService';
 
 interface ProviderDetailModalProps {
   visible: boolean;
@@ -26,61 +31,52 @@ interface ProviderDetailModalProps {
   userPoints: number;
 }
 
+// Utiliser les données du système de prix centralisé
 const mockMenuItems = [
   {
     id: '1',
-    name: 'Thiéboudiènne complet',
-    description: 'Riz au poisson avec légumes traditionnels',
-    points: 428000, // 5000 FCFA
+    name: 'Thiéboudienne',
+    description: 'Riz au poisson, légumes et sauce tomate',
+    points: 64, // 5000 FCFA ÷ 78.359 = 64 points
     category: 'Plats principaux',
     image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
     popular: true,
+    fcfaFormatted: '5,000 FCFA',
+    pointsFormatted: '64 pts'
   },
   {
     id: '2',
-    name: 'Jus de gingembre frais',
-    description: 'Boisson rafraîchissante au gingembre',
-    points: 42800, // 500 FCFA
-    category: 'Boissons',
-    image: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg',
-    popular: false,
-  },
-  {
-    id: '3',
-    name: 'Salade de fruits tropicaux',
-    description: 'Mélange de fruits frais de saison',
-    points: 128400, // 1500 FCFA
-    category: 'Desserts',
-    image: 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg',
-    popular: true,
-  },
-  {
-    id: '4',
-    name: 'Poisson braisé',
-    description: 'Poisson grillé aux épices locales',
-    points: 513600, // 6000 FCFA
-    category: 'Plats principaux',
-    image: 'https://images.pexels.com/photos/725991/pexels-photo-725991.jpeg',
-    popular: false,
-  },
-  {
-    id: '5',
-    name: 'Attiéké poisson',
-    description: 'Semoule de manioc avec poisson grillé',
-    points: 428000, // 5000 FCFA
+    name: 'Riz sauce graine',
+    description: 'Riz accompagné de sauce graine traditionnelle',
+    points: 57, // 4500 FCFA ÷ 78.359 = 57 points
     category: 'Plats principaux',
     image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
     popular: true,
+    fcfaFormatted: '4,500 FCFA',
+    pointsFormatted: '57 pts'
   },
   {
-    id: '6',
-    name: 'Bissap glacé',
-    description: 'Boisson à base d\'hibiscus',
-    points: 42800, // 500 FCFA
+    id: '3',
+    name: 'Jus de gingembre frais',
+    description: 'Boisson rafraîchissante au gingembre',
+    points: 19, // 1500 FCFA ÷ 78.359 = 19 points
     category: 'Boissons',
     image: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg',
     popular: false,
+    fcfaFormatted: '1,500 FCFA',
+    pointsFormatted: '19 pts'
   },
+  {
+    id: '4',
+    name: 'Attiéké Poisson',
+    description: 'Attiéké accompagné de poisson grillé',
+    points: 64, // 5000 FCFA ÷ 78.359 = 64 points
+    category: 'Plats principaux',
+    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+    popular: true,
+    fcfaFormatted: '5,000 FCFA',
+    pointsFormatted: '64 pts'
+  }
 ];
 
 export default function ProviderDetailModal({ visible, onClose, provider, userPoints }: ProviderDetailModalProps) {
@@ -90,9 +86,12 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   const [showCustomization, setShowCustomization] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showUnsoldProducts, setShowUnsoldProducts] = useState(false);
+  const [showExtrasSelection, setShowExtrasSelection] = useState(false);
+  const [currentCartItemId, setCurrentCartItemId] = useState<string | null>(null);
   const [qrTimer, setQrTimer] = useState(10);
   
-  const { addToCart } = useCart();
+  const { addToCart, updateItemExtras } = useCart();
+  const responsiveStyles = useResponsiveModalStyles();
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -124,8 +123,9 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
     }
   }, [visible]);
 
+  // Timer pour mettre à jour le temps restant
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (showQR && qrTimer > 0) {
       interval = setInterval(() => {
         setQrTimer((prev) => prev - 1);
@@ -133,7 +133,9 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
     } else if (qrTimer === 0) {
       setQrTimer(10);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [showQR, qrTimer]);
 
   const handleLoadingComplete = () => {
@@ -174,7 +176,8 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   const handleAddToCart = (product: any, customizations: any[], quantity: number, totalPrice: number) => {
     if (!provider) return;
     
-    addToCart({
+    // Ajouter au panier et récupérer l'ID généré
+    const cartItemId = addToCart({
       productId: product.id,
       productName: product.name,
       productImage: product.image,
@@ -185,6 +188,54 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
       providerId: provider.id,
       providerName: provider.name
     });
+    
+    // Stocker l'ID pour l'utiliser avec les extras
+    setCurrentCartItemId(cartItemId);
+    
+    // Afficher le modal de sélection des extras
+    setShowExtrasSelection(true);
+  };
+  
+  const handleExtrasSelected = (selectedExtras: any[]) => {
+    if (currentCartItemId) {
+      // Mettre à jour l'élément du panier avec les extras sélectionnés
+      updateItemExtras(currentCartItemId, selectedExtras);
+      
+      // Afficher une alerte avec options pour continuer vers le panier ou rester sur la page
+      Alert.alert(
+        'Produit ajouté au panier', 
+        'Votre produit et les extras ont été ajoutés au panier.',
+        [
+          {
+            text: 'Continuer mes achats',
+            style: 'cancel',
+            onPress: () => {
+              setShowExtrasSelection(false);
+              setCurrentCartItemId(null);
+            }
+          },
+          {
+            text: 'Voir mon panier',
+            style: 'default',
+            onPress: () => {
+              setShowExtrasSelection(false);
+              setCurrentCartItemId(null);
+              // Fermer ce modal et ouvrir le modal du panier
+              onClose();
+              // Déclencher l'événement d'ouverture du panier
+              setTimeout(() => {
+                eventService.emit(APP_EVENTS.OPEN_CART);
+              }, 300);
+            }
+          }
+        ]
+      );
+    }
+  };
+  
+  const handleExtrasClose = () => {
+    setShowExtrasSelection(false);
+    setCurrentCartItemId(null);
   };
 
   const handleClose = () => {
@@ -243,7 +294,7 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
       >
         <TouchableOpacity 
           style={[
-            styles.overlay,
+            responsiveStyles.overlay,
             {
               opacity: fadeAnim,
             }
@@ -255,6 +306,9 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
             style={[
               styles.container,
               {
+                width: responsiveStyles.container.width,
+                maxWidth: responsiveStyles.container.maxWidth,
+                borderRadius: responsiveStyles.container.borderRadius,
                 opacity: fadeAnim,
                 transform: [{ scale: scaleAnim }],
               }
@@ -269,8 +323,8 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
             
             {!showLoading && (
               <>
-                <View style={styles.header}>
-                  <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <View style={responsiveStyles.header}>
+                  <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
                     <X size={24} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -288,13 +342,13 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
                 </View>
                 
                 <Animated.ScrollView 
-                  style={styles.content} 
+                  style={responsiveStyles.content} 
                   showsVerticalScrollIndicator={false}
                   onScroll={handleScroll}
                   scrollEventThrottle={16}
                 >
                   <View style={styles.providerInfo}>
-                    <Text style={styles.providerName}>{provider.name}</Text>
+                    <Text style={[styles.providerName, { fontSize: responsiveStyles.title.fontSize }]}>{provider.name}</Text>
                     <Text style={styles.providerCategory}>{provider.category}</Text>
                     
                     <View style={styles.infoRow}>
@@ -506,9 +560,14 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
                           <Text style={styles.popularName} numberOfLines={2}>
                             {item.name}
                           </Text>
-                          <Text style={styles.popularPoints}>
-                            {item.points.toLocaleString()} pts
-                          </Text>
+                          <View style={styles.popularPriceContainer}>
+                            <Text style={styles.popularOriginalPrice}>
+                              {item.fcfaFormatted}
+                            </Text>
+                            <Text style={styles.popularPoints}>
+                              {item.pointsFormatted}
+                            </Text>
+                          </View>
                         </View>
                         <TouchableOpacity 
                           style={styles.addButton}
@@ -543,11 +602,11 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
                             <Text style={styles.menuItemName}>{item.name}</Text>
                             
                             <View style={styles.priceContainer}>
-                              <Text style={styles.menuItemPoints}>
-                                {item.points.toLocaleString()} pts
-                              </Text>
                               <Text style={styles.originalPrice}>
-                                {Math.round(item.points * 1.2).toLocaleString()} pts
+                                {item.fcfaFormatted}
+                              </Text>
+                              <Text style={styles.menuItemPoints}>
+                                {item.pointsFormatted}
                               </Text>
                             </View>
                             
@@ -602,6 +661,14 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
         provider={provider}
         userPoints={userPoints}
         onAddToCart={handleAddToCart}
+      />
+      
+      {/* Extras Selection Modal */}
+      <ExtrasSelectionModal
+        visible={showExtrasSelection}
+        onClose={handleExtrasClose}
+        onContinue={handleExtrasSelected}
+        extras={mockExtras}
       />
     </>
   );
@@ -878,6 +945,15 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 5,
   },
+  popularPriceContainer: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  popularOriginalPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
   popularPoints: {
     fontSize: 14,
     color: '#00B14F',
@@ -918,9 +994,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 2,
   },
   menuItemDescription: {
     fontSize: 14,
@@ -928,16 +1005,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 20,
   },
-  menuItemPoints: {
-    fontSize: 18,
-    color: '#00B14F',
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
   originalPrice: {
     fontSize: 14,
     color: '#999',
     textDecorationLine: 'line-through',
+  },
+  menuItemPoints: {
+    fontSize: 18,
+    color: '#00B14F',
+    fontWeight: 'bold',
   },
   menuItemImageContainer: {
     position: 'relative',

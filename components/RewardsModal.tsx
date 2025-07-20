@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { X, TrendingUp, Gift, Wallet } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface RewardsModalProps {
   visible: boolean;
@@ -29,7 +30,7 @@ const mockSavings = [
     originalPrice: 50,
     finalPrice: 40,
     discount: 15,
-    cashback: 100,
+    cashback: 1, // 100 FCFA ÷ 78.359 = 1.28 points (arrondi à 1)
   },
   {
     id: '2',
@@ -38,7 +39,7 @@ const mockSavings = [
     originalPrice: 80,
     finalPrice: 60,
     discount: 20,
-    cashback: 100,
+    cashback: 1, // 100 FCFA ÷ 78.359 = 1.28 points (arrondi à 1)
   },
   {
     id: '3',
@@ -47,7 +48,7 @@ const mockSavings = [
     originalPrice: 30,
     finalPrice: 30,
     discount: 10,
-    cashback: 100,
+    cashback: 1, // 100 FCFA ÷ 78.359 = 1.28 points (arrondi à 1)
   },
   {
     id: '4',
@@ -56,11 +57,12 @@ const mockSavings = [
     originalPrice: 30,
     finalPrice: 20,
     discount: 5,
-    cashback: 100,
+    cashback: 1, // 100 FCFA ÷ 78.359 = 1.28 points (arrondi à 1)
   },
 ];
 
 export default function RewardsModal({ visible, onClose, user }: RewardsModalProps) {
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -115,7 +117,7 @@ export default function RewardsModal({ visible, onClose, user }: RewardsModalPro
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={handleOverlayPress}
       >
@@ -123,6 +125,14 @@ export default function RewardsModal({ visible, onClose, user }: RewardsModalPro
           style={[
             styles.container,
             {
+              width: responsiveStyles.container.maxWidth,
+              maxHeight: responsiveStyles.container.maxHeight,
+              borderRadius: responsiveStyles.container.borderRadius,
+              shadowColor: responsiveStyles.container.shadowColor,
+              shadowOffset: responsiveStyles.container.shadowOffset,
+              shadowOpacity: responsiveStyles.container.shadowOpacity,
+              shadowRadius: responsiveStyles.container.shadowRadius,
+              elevation: responsiveStyles.container.elevation,
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }],
             }
@@ -130,8 +140,8 @@ export default function RewardsModal({ visible, onClose, user }: RewardsModalPro
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Mes Récompenses</Text>
+          <View style={responsiveStyles.header}>
+            <Text style={responsiveStyles.title}>Mes Récompenses</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <X size={24} color="#8E8E8E" />
             </TouchableOpacity>

@@ -25,7 +25,7 @@ interface CheckoutModalProps {
 }
 
 export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) {
-  const { cartItems, cartTotal, clearCart, applyCoupon, updateQuantity } = useCart();
+  const { cartItems, cartTotal, clearCart, applyCoupon } = useCart();
   const { user, updateUserPoints } = useAuth();
   const responsiveStyles = useResponsiveModalStyles();
   const [selectedPayment, setSelectedPayment] = useState<'points' | 'mtn' | 'orange' | 'moov'>('points');
@@ -34,9 +34,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const [selectedCartItemId, setSelectedCartItemId] = useState<string | null>(null);
   const [showCouponAnimation, setShowCouponAnimation] = useState(false);
   const [animatedCouponData, setAnimatedCouponData] = useState<{ code: string, discount: number } | null>(null);
-  const [globalDiscountPercentage, setGlobalDiscountPercentage] = useState(0);
-  const [originalTotal, setOriginalTotal] = useState(cartTotal);
-  const [discountedTotal, setDiscountedTotal] = useState(cartTotal);
   
   // Génération de frais pour chaque méthode mobile money
   const [mobileFees] = useState({
@@ -156,90 +153,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       }, 2500);
     }
   };
-  
-  // Gestionnaire pour appliquer une remise de base
-  const handleApplyDiscount = (discountPercentage: number, checkMinimum = false) => {
-    if (checkMinimum && cartTotal <= 70) {
-      Alert.alert(
-        "Remise non disponible", 
-        "Cette remise nécessite un total de commande supérieur à 70 points."
-      );
-      return;
-    }
-    
-    setGlobalDiscountPercentage(discountPercentage);
-    
-    // Calculer le total avec réduction
-    const discounted = Math.round(cartTotal * (1 - discountPercentage / 100));
-    setOriginalTotal(cartTotal);
-    setDiscountedTotal(discounted);
-    
-    // Enregistrer la remise dans la base de données (simulation)
-    console.log(`Remise de base appliquée: ${discountPercentage}% pour le client ${user?.id}`);
-    
-    // Afficher une notification
-    Alert.alert(
-      "Remise appliquée",
-      `Une remise de ${discountPercentage}% a été appliquée à votre commande.`
-    );
-  };
-  
-  // Gestionnaire pour appliquer une remise Gold
-  const handleApplyGoldDiscount = (discountPercentage: number, checkMinimum = false) => {
-    // Vérifier si l'utilisateur est membre Gold
-    if (user?.membershipType !== 'gold') {
-      Alert.alert(
-        "Statut Gold requis",
-        "Cette remise est réservée aux membres Gold. Souhaitez-vous passer à un abonnement Gold ?",
-        [
-          { text: "Non", style: "cancel" },
-          { 
-            text: "Oui", 
-            onPress: () => {
-              console.log("L'utilisateur souhaite passer à un abonnement Gold");
-              // Utiliser storage pour signaler qu'il faut afficher la popup d'abonnement Gold
-              import('@/utils/storage').then(storageModule => {
-                const storage = storageModule.default;
-                storage.setItem('show_gold_upgrade_popup', JSON.stringify(true))
-                  .then(() => {
-                    // Fermer la modale actuelle pour permettre l'affichage de la popup
-                    handleClose();
-                  })
-                  .catch(error => {
-                    console.error("Erreur lors de la configuration de la popup d'abonnement:", error);
-                  });
-              });
-            } 
-          }
-        ]
-      );
-      return;
-    }
-    
-    if (checkMinimum && cartTotal <= 70) {
-      Alert.alert(
-        "Remise non disponible", 
-        "Cette remise nécessite un total de commande supérieur à 70 points."
-      );
-      return;
-    }
-    
-    setGlobalDiscountPercentage(discountPercentage);
-    
-    // Calculer le total avec réduction
-    const discounted = Math.round(cartTotal * (1 - discountPercentage / 100));
-    setOriginalTotal(cartTotal);
-    setDiscountedTotal(discounted);
-    
-    // Enregistrer la remise dans la base de données (simulation)
-    console.log(`Remise Gold appliquée: ${discountPercentage}% pour le membre Gold ${user?.id}`);
-    
-    // Afficher une notification
-    Alert.alert(
-      "Remise Gold appliquée",
-      `Une remise exclusive de ${discountPercentage}% a été appliquée à votre commande.`
-    );
-  };
 
   return (
     <>
@@ -311,25 +224,24 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                       
                       {item.couponCode && (
                         <Text style={styles.couponApplied}>
-                          Remise appliquée: -{item.couponDiscount}%
+                          Coupon appliqué: -{item.couponDiscount}%
                         </Text>
                       )}
+                      
+                      <TouchableOpacity 
+                        style={styles.addCouponButton}
+                        onPress={() => {
+                          setSelectedCartItemId(item.id);
+                          setShowCouponModal(true);
+                        }}
+                      >
+                        <Ticket size={14} color="#FF6B6B" />
+                        <Text style={styles.addCouponText}>
+                          {item.couponCode ? "Changer de coupon" : "Ajouter un coupon"}
+                        </Text>
+                      </TouchableOpacity>
                       <View style={styles.itemFooter}>
-                        <View style={styles.quantityControl}>
-                          <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                          >
-                            <Text style={styles.quantityButtonText}>-</Text>
-                          </TouchableOpacity>
-                          <Text style={styles.quantity}>{item.quantity}</Text>
-                          <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                          >
-                            <Text style={styles.quantityButtonText}>+</Text>
-                          </TouchableOpacity>
-                        </View>
+                        <Text style={styles.quantity}>Qté: {item.quantity}</Text>
                         <Text style={styles.itemPrice}>
                           {item.totalPrice.toLocaleString()} pts
                         </Text>
@@ -401,80 +313,14 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
             </ScrollView>
 
             <View style={styles.footer}>
-              {/* Nouveau système de remise */}
-              <View style={styles.discountSection}>
-                <Text style={styles.discountTitle}>Appliquer une remise</Text>
-                <View style={styles.discountButtonsContainer}>
-                  <View style={styles.discountCategory}>
-                    <Text style={styles.discountCategoryTitle}>Remises de base</Text>
-                    <View style={styles.discountButtonsRow}>
-                      <TouchableOpacity 
-                        style={styles.discountButton}
-                        onPress={() => handleApplyDiscount(2)}
-                      >
-                        <Ticket size={16} color="#fff" />
-                        <Text style={styles.discountButtonText}>Client Classic (2%)</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.discountButton}
-                        onPress={() => handleApplyDiscount(cartTotal > 70 ? 5 : 0, cartTotal > 70)}
-                      >
-                        <Ticket size={16} color="#fff" />
-                        <Text style={styles.discountButtonText}>Classic {'>'}70pts (5%)</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.discountCategory}>
-                    <Text style={styles.discountCategoryTitle}>Remises Gold</Text>
-                    <View style={styles.discountButtonsRow}>
-                      <TouchableOpacity 
-                        style={[styles.discountButton, styles.goldButton]}
-                        onPress={() => handleApplyGoldDiscount(10)}
-                      >
-                        <Ticket size={16} color="#fff" />
-                        <Text style={styles.discountButtonText}>Membre Gold (10%)</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.discountButton, styles.goldButton]}
-                        onPress={() => handleApplyGoldDiscount(cartTotal > 70 ? 15 : 0, cartTotal > 70)}
-                      >
-                        <Ticket size={16} color="#fff" />
-                        <Text style={styles.discountButtonText}>Gold {'>'}70pts (15%)</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              </View>
-
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total à payer</Text>
-                {globalDiscountPercentage > 0 ? (
-                  <View>
-                    <Text style={styles.originalAmount}>
-                      {selectedPayment === 'points' 
-                        ? `${originalTotal.toLocaleString()} pts`
-                        : `${pointsToFcfa(originalTotal).toLocaleString()} FCFA`
-                      }
-                    </Text>
-                    <View style={styles.discountRow}>
-                      <Text style={styles.discountText}>Remise: {globalDiscountPercentage}%</Text>
-                      <Text style={styles.totalAmount}>
-                        {selectedPayment === 'points' 
-                          ? `${discountedTotal.toLocaleString()} pts`
-                          : `${pointsToFcfa(discountedTotal).toLocaleString()} FCFA`
-                        }
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <Text style={styles.totalAmount}>
-                    {selectedPayment === 'points' 
-                      ? `${cartTotal.toLocaleString()} pts`
-                      : `${pointsToFcfa(cartTotal).toLocaleString()} FCFA`
-                    }
-                  </Text>
-                )}
+                <Text style={styles.totalAmount}>
+                  {selectedPayment === 'points' 
+                    ? `${cartTotal.toLocaleString()} pts`
+                    : `${pointsToFcfa(cartTotal).toLocaleString()} FCFA`
+                  }
+                </Text>
               </View>
               
               {selectedPayment === 'points' && user && user.points < cartTotal && (
@@ -629,29 +475,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quantity: {
-    fontSize: 14,
-    marginHorizontal: 10,
-    color: '#333',
-    fontWeight: '500',
-  },
-  quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F2F2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  quantityButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 12,
+    color: '#666',
   },
   itemPrice: {
     fontSize: 14,
@@ -793,80 +618,5 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     marginLeft: 4,
     fontWeight: '500',
-  },
-  discountSection: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#F9F9F9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  discountTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  discountButtonsContainer: {
-    marginTop: 5,
-  },
-  discountCategory: {
-    marginBottom: 10,
-  },
-  discountCategoryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 6,
-  },
-  discountButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  discountButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 3,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  goldButton: {
-    backgroundColor: '#FFD700',
-    shadowColor: '#FFD700',
-  },
-  discountButtonText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 4,
-    textAlign: 'center',
-    flex: 1,
-  },
-  originalAmount: {
-    fontSize: 16,
-    color: '#888',
-    textDecorationLine: 'line-through',
-    textAlign: 'right',
-  },
-  discountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  discountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF6B6B',
   },
 });

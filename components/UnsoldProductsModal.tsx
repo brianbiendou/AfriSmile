@@ -15,6 +15,7 @@ import { type ProviderCompat } from '@/data/providers';
 import { useCart } from '@/contexts/CartContext';
 import { getUnsoldProducts } from '@/lib/products';
 import ProductCustomizationModal from '@/components/ProductCustomizationModal';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface UnsoldProduct {
   id: string;
@@ -48,6 +49,7 @@ export default function UnsoldProductsModal({
   const [showCustomization, setShowCustomization] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<{ [key: string]: string }>({});
 
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -202,7 +204,7 @@ export default function UnsoldProductsModal({
         onRequestClose={handleClose}
       >
         <TouchableOpacity 
-          style={styles.overlay} 
+          style={responsiveStyles.overlay} 
           activeOpacity={1} 
           onPress={handleClose}
         >
@@ -212,17 +214,20 @@ export default function UnsoldProductsModal({
               {
                 opacity: fadeAnim,
                 transform: [{ scale: scaleAnim }],
+                width: responsiveStyles.container.width,
+                maxWidth: responsiveStyles.container.maxWidth,
+                borderRadius: responsiveStyles.container.borderRadius,
               }
             ]}
             onStartShouldSetResponder={() => true}
             onResponderGrant={(e) => e.stopPropagation()}
           >
-            <View style={styles.header}>
+            <View style={responsiveStyles.header}>
               <View style={styles.headerContent}>
                 <Percent size={24} color="#FF9500" />
-                <Text style={styles.title}>Plats invendus</Text>
+                <Text style={responsiveStyles.title}>Plats invendus</Text>
               </View>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
                 <X size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -233,7 +238,7 @@ export default function UnsoldProductsModal({
               </Text>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView style={responsiveStyles.content} showsVerticalScrollIndicator={false}>
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <Text style={styles.loadingText}>Chargement des offres...</Text>

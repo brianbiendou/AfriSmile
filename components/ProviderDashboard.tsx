@@ -10,6 +10,7 @@ import {
 import { Plus, Package, TrendingUp, Users, Edit, LogOut } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import LogoutModal from '@/components/LogoutModal';
+import pricingSystem from '@/utils/pricingSystem';
 
 export default function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState('products');
@@ -23,15 +24,57 @@ export default function ProviderDashboard() {
   ];
 
   const products = [
-    { id: 1, name: 'Attiéké Poisson', price: '428,000 pts', stock: 'En stock', sales: 8 },
-    { id: 2, name: 'Riz Sauce Graine', price: '385,200 pts', stock: 'En stock', sales: 5 },
-    { id: 3, name: 'Foutou Sauce Claire', price: '342,400 pts', stock: 'Rupture', sales: 3 },
+    { 
+      id: 1, 
+      name: 'Attiéké Poisson', 
+      price: pricingSystem.formatProductPrice('attieke_poisson').currentPrice,
+      fcfaPrice: pricingSystem.formatProductPrice('attieke_poisson').originalPrice,
+      stock: 'En stock', 
+      sales: 8 
+    },
+    { 
+      id: 2, 
+      name: 'Riz Sauce Graine', 
+      price: pricingSystem.formatProductPrice('riz_sauce_graine').currentPrice,
+      fcfaPrice: pricingSystem.formatProductPrice('riz_sauce_graine').originalPrice,
+      stock: 'En stock', 
+      sales: 5 
+    },
+    { 
+      id: 3, 
+      name: 'Thiéboudienne', 
+      price: pricingSystem.formatProductPrice('thiebboudienne').currentPrice,
+      fcfaPrice: pricingSystem.formatProductPrice('thiebboudienne').originalPrice,
+      stock: 'Rupture', 
+      sales: 3 
+    },
   ];
 
   const orders = [
-    { id: 1, customer: 'Kouassi Jean', items: 'Attiéké Poisson x2', amount: '856,000 pts', status: 'En préparation' },
-    { id: 2, customer: 'Aya Marie', items: 'Riz Sauce Graine x1', amount: '385,200 pts', status: 'Prêt' },
-    { id: 3, customer: 'Koné Paul', items: 'Foutou x1, Attiéké x1', amount: '770,400 pts', status: 'Livré' },
+    { 
+      id: 1, 
+      customer: 'Kouassi Jean', 
+      items: 'Attiéké Poisson x2', 
+      amount: (pricingSystem.getProductPricePoints('attieke_poisson') * 2).toLocaleString() + ' pts',
+      fcfaAmount: (pricingSystem.getProductPriceFcfa('attieke_poisson') * 2).toLocaleString() + ' FCFA',
+      status: 'En préparation' 
+    },
+    { 
+      id: 2, 
+      customer: 'Aya Marie', 
+      items: 'Riz Sauce Graine x1', 
+      amount: pricingSystem.getProductPricePoints('riz_sauce_graine').toLocaleString() + ' pts',
+      fcfaAmount: pricingSystem.getProductPriceFcfa('riz_sauce_graine').toLocaleString() + ' FCFA',
+      status: 'Prêt' 
+    },
+    { 
+      id: 3, 
+      customer: 'Koné Paul', 
+      items: 'Thiéboudienne x1, Jus Gingembre x1', 
+      amount: (pricingSystem.getProductPricePoints('thiebboudienne') + pricingSystem.getProductPricePoints('jus_gingembre')).toLocaleString() + ' pts',
+      fcfaAmount: (pricingSystem.getProductPriceFcfa('thiebboudienne') + pricingSystem.getProductPriceFcfa('jus_gingembre')).toLocaleString() + ' FCFA',
+      status: 'Livré' 
+    },
   ];
 
   const getStatusColor = (status: string) => {
@@ -66,7 +109,10 @@ export default function ProviderDashboard() {
         <View key={product.id} style={styles.productCard}>
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productPrice}>{product.price}</Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.productFcfaPrice}>{product.fcfaPrice}</Text>
+              <Text style={styles.productPrice}>{product.price}</Text>
+            </View>
             <Text style={[styles.productStock, { color: product.stock === 'En stock' ? '#00B14F' : '#F44336' }]}>
               {product.stock}
             </Text>
@@ -92,7 +138,10 @@ export default function ProviderDashboard() {
         <View key={order.id} style={styles.orderCard}>
           <View style={styles.orderHeader}>
             <Text style={styles.customerName}>{order.customer}</Text>
-            <Text style={styles.orderAmount}>{order.amount}</Text>
+            <View style={styles.orderAmountContainer}>
+              <Text style={styles.orderFcfaAmount}>{order.fcfaAmount}</Text>
+              <Text style={styles.orderAmount}>{order.amount}</Text>
+            </View>
           </View>
           <Text style={styles.orderItems}>{order.items}</Text>
           <View style={styles.orderFooter}>
@@ -298,11 +347,20 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
+  priceContainer: {
+    flexDirection: 'column',
+    gap: 2,
+    marginBottom: 4,
+  },
+  productFcfaPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#00B14F',
-    marginBottom: 2,
   },
   productStock: {
     fontSize: 12,
@@ -340,6 +398,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  orderAmountContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  orderFcfaAmount: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
   },
   orderAmount: {
     fontSize: 14,

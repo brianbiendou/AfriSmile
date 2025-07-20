@@ -128,7 +128,7 @@ export const authenticateUser = async (email: string, password: string): Promise
           first_name: 'Admin',
           last_name: 'Système',
           phone: '+225 00 00 00 00 00',
-          points: 50000,
+          points: 638, // 50000 FCFA ÷ 78.359 = 638 points
           balance: 25000,
           is_active: true,
           created_at: new Date().toISOString(),

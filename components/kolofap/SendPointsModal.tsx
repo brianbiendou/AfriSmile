@@ -15,6 +15,7 @@ import { KolofapUser } from '@/types/kolofap';
 import { sendPoints, searchUserByGamertag } from '@/lib/kolofap';
 import { formatPointsWithFcfa } from '@/utils/pointsConversion';
 import { formatPoints } from '@/utils/pointsConversion';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface SendPointsModalProps {
   visible: boolean;
@@ -37,6 +38,7 @@ export default function SendPointsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [foundUser, setFoundUser] = useState<KolofapUser | null>(null);
 
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -85,7 +87,10 @@ export default function SendPointsModal({
       ];
       
       const foundUser = mockUsers.find(u => u.gamertag.toLowerCase() === gamertag.trim().toLowerCase());
-      setFoundUser(foundUser || null);
+      setFoundUser(foundUser ? {
+        ...foundUser,
+        avatar_url: foundUser.avatar_url || undefined
+      } : null);
       
       if (!foundUser) {
         Alert.alert('Utilisateur introuvable', 'Aucun utilisateur trouvé avec ce gamertag. Essayez: john_doe, sarah_k, alex_ci, fatou_ba, pierre_ci');
@@ -161,7 +166,7 @@ export default function SendPointsModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={() => {}} // Empêche la fermeture sur clic overlay
       >
@@ -169,6 +174,14 @@ export default function SendPointsModal({
           style={[
             styles.container,
             {
+              width: responsiveStyles.container.maxWidth,
+              maxHeight: responsiveStyles.container.maxHeight,
+              borderRadius: responsiveStyles.container.borderRadius,
+              shadowColor: responsiveStyles.container.shadowColor,
+              shadowOffset: responsiveStyles.container.shadowOffset,
+              shadowOpacity: responsiveStyles.container.shadowOpacity,
+              shadowRadius: responsiveStyles.container.shadowRadius,
+              elevation: responsiveStyles.container.elevation,
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }],
             }
@@ -176,8 +189,8 @@ export default function SendPointsModal({
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Envoyer des points</Text>
+          <View style={responsiveStyles.header}>
+            <Text style={responsiveStyles.title}>Envoyer des points</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <X size={24} color="#6B7280" />
             </TouchableOpacity>

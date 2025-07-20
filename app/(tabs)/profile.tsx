@@ -47,12 +47,12 @@ export default function ProfileScreen() {
     avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg',
     points: authUser?.points || 0,
     balance: pointsToFcfa(authUser?.points || 0),
+    membershipType: authUser?.membershipType || 'classic',
     totalSavings: Math.floor((authUser?.points || 0) * 0.8), // Estimation des économies
     ordersCount: 8, // À récupérer depuis la base de données
     completionPercentage: 75,
-    nextReward: 25000,
-    monthlySpending: 45000,
-    loyaltyLevel: (authUser?.points || 0) > 10000 ? 'Gold' : 'Silver',
+    nextReward: 319, // 25000 FCFA ÷ 78.359 = 319 points
+    monthlySpending: 574, // 45000 FCFA ÷ 78.359 = 574 points
   };
 
   const menuItems = [
@@ -138,19 +138,36 @@ export default function ProfileScreen() {
           <Text style={styles.title}>Mon Profil</Text>
         </View>
         
-        <View style={styles.userCard}>
+        <View style={[
+            styles.userCard,
+            user.membershipType === 'gold' ? styles.goldMemberCard : {}
+          ]}>
           {/* Cartes de fond inclinées pour l'effet de superposition */}
-          <View style={styles.cardBackground} />
-          <View style={styles.cardBackground2} />
+          <View style={[styles.cardBackground, user.membershipType === 'gold' ? styles.goldCardBackground : {}]} />
+          <View style={[styles.cardBackground2, user.membershipType === 'gold' ? styles.goldCardBackground : {}]} />
           <View style={styles.goldOverlay} />
+          {user.membershipType === 'gold' && (
+            <Image 
+              source={{uri: 'https://cdn-icons-png.flaticon.com/512/1021/1021220.png'}} 
+              style={styles.goldBadgeIcon}
+            />
+          )}
           
           <Image source={{ uri: user.avatar }} style={styles.avatar} />
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{user.name}</Text>
             <Text style={styles.userEmail}>{user.email}</Text>
             <Text style={styles.userPhone}>{user.phone}</Text>
-            <View style={styles.loyaltyBadge}>
-              <Text style={styles.loyaltyText}>{user.loyaltyLevel} Member</Text>
+            <View style={[
+              styles.loyaltyBadge, 
+              user.membershipType === 'gold' ? styles.goldBadge : styles.classicBadge
+            ]}>
+              <Text style={[
+                styles.loyaltyText,
+                user.membershipType === 'gold' ? styles.goldText : styles.classicText
+              ]}>
+                {user.membershipType === 'gold' ? 'Gold Member' : 'Classic Member'}
+              </Text>
             </View>
           </View>
         </View>
@@ -252,6 +269,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
+  // Styles pour les badges d'adhésion
+  goldBadge: {
+    backgroundColor: '#1A1A1A',
+    borderWidth: 2,
+    borderColor: '#FFD700', // Bordure dorée
+  },
+  classicBadge: {
+    backgroundColor: '#1A1A1A',
+    borderWidth: 2,
+    borderColor: '#C0C0C0', // Bordure argentée
+  },
+  goldText: {
+    color: '#FFD700', // Texte doré
+  },
+  classicText: {
+    color: '#C0C0C0', // Texte argenté
+  },
+  goldBadgeIcon: {
+    position: 'absolute',
+    top: -15,
+    right: -15,
+    width: 40,
+    height: 40,
+    zIndex: 10,
+  },
   scrollView: {
     flex: 1,
   },
@@ -324,6 +366,9 @@ const styles = StyleSheet.create({
     elevation: 12,
     overflow: 'visible',
   },
+  goldMemberCard: {
+    backgroundColor: '#F5E5C0', // Plus doré pour les membres Gold
+  },
   // Carte de fond inclinée (effet de superposition)
   cardBackground: {
     position: 'absolute',
@@ -347,6 +392,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     transform: [{ rotate: '1deg' }],
     zIndex: -1,
+  },
+  goldCardBackground: {
+    backgroundColor: '#FFD700', // Or vif pour les membres Gold
   },
   // Overlay doré avec texture
   goldOverlay: {

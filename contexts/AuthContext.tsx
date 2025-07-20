@@ -18,6 +18,7 @@ interface User {
   points: number;
   balance: number;
   role: string;
+  membershipType: 'classic' | 'gold';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -34,6 +35,7 @@ interface AuthContextType {
   userType: 'user' | 'provider' | null;
   updateUserPoints: (pointsChange: number) => Promise<void>;
   addUserPoints: (pointsToAdd: number) => Promise<void>;
+  updateMembershipType: (newType: 'classic' | 'gold') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,6 +154,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error in addUserPoints:', error);
     }
   };
+  
+  // Mettre à jour le type d'abonnement de l'utilisateur
+  const updateMembershipType = async (newType: 'classic' | 'gold') => {
+    if (!user) return;
+    
+    try {
+      console.log(`Mise à jour du type d'abonnement: ${user.membershipType} → ${newType}`);
+      
+      // Mise à jour locale du type d'abonnement (simulation)
+      const updatedUser = {
+        ...user,
+        membershipType: newType,
+        updated_at: new Date().toISOString()
+      };
+      
+      setUser(updatedUser);
+      await saveUserData(updatedUser);
+      
+      // Sauvegarder le statut d'abonnement dans le stockage local
+      await storage.setItem('membership_type', newType);
+      
+      console.log(`✅ Type d'abonnement mis à jour avec succès: ${newType}`);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du type d\'abonnement:', error);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -168,9 +196,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             first_name: 'Marie',
             last_name: 'Kouassi',
             phone: '+225 07 12 34 56 78',
-            points: 4279, // 50 FCFA
-            balance: 50.0,
+            points: 1021, // 80000 FCFA en nouveaux points
+            balance: 80000.0, // Balance en FCFA
             role: 'client',
+            membershipType: 'classic' as const, // Utilisateur standard par défaut
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -184,9 +213,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             first_name: 'Tante',
             last_name: 'Marie',
             phone: '+225 07 89 01 23 45',
-            points: 8559, // 100 FCFA
+            points: 1, // 100 FCFA en nouveaux points
             balance: 100.0,
             role: 'provider',
+            membershipType: 'classic' as const, // Les prestataires ont aussi un type d'abonnement
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -200,9 +230,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             first_name: 'Admin',
             last_name: 'Système',
             phone: '+225 05 00 00 00 00',
-            points: 17118, // 200 FCFA
-            balance: 200.0,
+            points: 1915, // 150000 FCFA en nouveaux points
+            balance: 150000.0, // Balance en FCFA
             role: 'admin',
+            membershipType: 'gold' as const, // L'administrateur a un abonnement gold par défaut
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -248,6 +279,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Supprimer la session utilisateur
       await storage.removeItem('current_user');
+      
+      // Réinitialiser le flag de popup après connexion pour s'assurer qu'il s'affiche à la prochaine connexion
+      await storage.removeItem('login_popup_shown');
+      
       setUser(null);
       
       console.log('✅ Déconnexion réussie');
@@ -270,7 +305,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       userType,
       updateUserPoints,
-      addUserPoints
+      addUserPoints,
+      updateMembershipType
     }}>
       {children}
     </AuthContext.Provider>

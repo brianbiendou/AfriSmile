@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { Chrome as Home, Grid3x3 as Grid3X3, ShoppingBag, User, Store } from 'lucide-react-native';
+import { Chrome as Home, Grid3x3 as Grid3X3, ShoppingBag, User, Store, Smartphone } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AppSwitcher from '@/components/AppSwitcher';
@@ -74,6 +74,15 @@ export default function TabLayout() {
               ),
             }}
           />
+          <Tabs.Screen
+            name="modal-test"
+            options={{
+              title: 'Test Modales',
+              tabBarIcon: ({ size, color }) => (
+                <Smartphone size={size} color={color} />
+              ),
+            }}
+          />
           {/* Masquer les onglets non nécessaires pour les prestataires */}
           <Tabs.Screen
             name="index"
@@ -84,16 +93,6 @@ export default function TabLayout() {
             options={{ href: null }}
           />
         </Tabs>
-      </View>
-    );
-  }
-
-  // Si on est sur Kolofap, afficher seulement l'interface Kolofap
-  if (currentApp === 'kolofap') {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
-        <AppSwitcher />
-        <KolofapHome />
       </View>
     );
   }
@@ -154,6 +153,15 @@ export default function TabLayout() {
             title: 'Compte',
             tabBarIcon: ({ size, color }) => (
               <User size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="modal-test"
+          options={{
+            title: 'Test Modales',
+            tabBarIcon: ({ size, color }) => (
+              <Smartphone size={size} color={color} />
             ),
           }}
         />

@@ -8,9 +8,13 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { X, Plus, Minus, ShoppingBag, CreditCard } from 'lucide-react-native';
+import { X, Plus, Minus, ShoppingBag, CreditCard, Ticket } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useCoupon } from '@/contexts/CouponContext';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
+import { eventService, APP_EVENTS } from '@/utils/eventService';
+import CouponDisplayModal from './CouponDisplayModal';
 
 interface CartModalProps {
   visible: boolean;
@@ -18,10 +22,29 @@ interface CartModalProps {
   onCheckout: () => void;
 }
 
-export default function CartModal({ visible, onClose, onCheckout }: CartModalProps) {
+export default function CartModal({ visible: propsVisible, onClose, onCheckout }: CartModalProps) {
+  const [visible, setVisible] = useState(propsVisible);
   const { cartItems, cartTotal, updateQuantity, removeFromCart } = useCart();
+  const { globalDiscountPercentage } = useCoupon();
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const [showCouponModal, setShowCouponModal] = useState(false);
+
+  // Écouter les changements de visible depuis les props
+  useEffect(() => {
+    setVisible(propsVisible);
+  }, [propsVisible]);
+  
+  // Écouter l'événement d'ouverture du panier
+  useEffect(() => {
+    const handleOpenCart = () => setVisible(true);
+    eventService.on(APP_EVENTS.OPEN_CART, handleOpenCart);
+    
+    return () => {
+      eventService.off(APP_EVENTS.OPEN_CART, handleOpenCart);
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -56,6 +79,7 @@ export default function CartModal({ visible, onClose, onCheckout }: CartModalPro
         useNativeDriver: true,
       }),
     ]).start(() => {
+      setVisible(false);
       onClose();
     });
   };
@@ -123,7 +147,7 @@ export default function CartModal({ visible, onClose, onCheckout }: CartModalPro
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={handleClose}
       >
@@ -133,19 +157,21 @@ export default function CartModal({ visible, onClose, onCheckout }: CartModalPro
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
+              maxWidth: responsiveStyles.container.maxWidth,
+              borderRadius: responsiveStyles.container.borderRadius,
             }
           ]}
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Mon Panier ({cartItems.length})</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <View style={responsiveStyles.header}>
+            <Text style={responsiveStyles.title}>Mon Panier ({cartItems.length})</Text>
+            <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
               <X size={24} color="#000" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView style={responsiveStyles.content} showsVerticalScrollIndicator={false}>
             {cartItems.map((item) => (
               <View key={item.id} style={styles.cartItem}>
                 <Image source={{ uri: item.productImage }} style={styles.itemImage} />
@@ -190,16 +216,47 @@ export default function CartModal({ visible, onClose, onCheckout }: CartModalPro
           <View style={styles.footer}>
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalAmount}>
-                {cartTotal.toLocaleString()} pts
-              </Text>
+              {globalDiscountPercentage > 0 ? (
+                <>
+                  <Text style={styles.originalPrice}>
+                    {cartTotal.toLocaleString()} pts
+                  </Text>
+                  <Text style={styles.totalAmount}>
+                    {Math.round(cartTotal * (1 - globalDiscountPercentage / 100)).toLocaleString()} pts
+                  </Text>
+                  <Text style={styles.discountTag}>-{globalDiscountPercentage}%</Text>
+                </>
+              ) : (
+                <Text style={styles.totalAmount}>
+                  {cartTotal.toLocaleString()} pts
+                </Text>
+              )}
             </View>
             
-            <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-              <CreditCard size={20} color="#fff" />
-              <Text style={styles.checkoutButtonText}>Passer la commande</Text>
-            </TouchableOpacity>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={styles.couponButton} 
+                onPress={() => setShowCouponModal(true)}
+              >
+                <Ticket size={16} color="#FF6B6B" />
+                <Text style={styles.couponButtonText}>Coupons</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.checkoutButton} 
+                onPress={handleCheckout}
+              >
+                <CreditCard size={18} color="#fff" />
+                <Text style={styles.checkoutButtonText}>Passer la commande</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+          
+          {/* Modal de coupons */}
+          <CouponDisplayModal
+            visible={showCouponModal}
+            onClose={() => setShowCouponModal(false)}
+          />
         </Animated.View>
       </TouchableOpacity>
     </Modal>
@@ -324,6 +381,45 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  originalPrice: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginBottom: 5,
+  },
+  discountTag: {
+    backgroundColor: '#FF6B6B',
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginLeft: 5,
+    overflow: 'hidden',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  couponButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  couponButtonText: {
+    color: '#FF6B6B',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 5,
   },
   checkoutButton: {
     backgroundColor: '#000',

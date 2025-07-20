@@ -31,10 +31,10 @@ export default function OrdersScreen() {
       user_id: 'default-user',
       provider_id: '1',
       status: 'delivered',
-      total_amount: 428000, // Équivalent 5000 FCFA
-      discount_amount: 85600, // 20% de réduction
-      final_amount: 342400, // Montant final
-      points_used: 342400,
+      total_amount: 64, // 5000 FCFA en nouveaux points
+      discount_amount: 13, // 20% de réduction  
+      final_amount: 51, // Montant final
+      points_used: 51,
       payment_method: 'points',
       delivery_address: 'Cocody, Abidjan',
       notes: null,

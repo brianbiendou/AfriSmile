@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import storage from '@/utils/storage';
+import { ExtraItem } from '@/data/extras';
 
 interface CartItem {
   id: string;
@@ -17,6 +18,9 @@ interface CartItem {
       price: number;
     }[];
   }[];
+  extras?: ExtraItem[];
+  couponCode?: string;
+  couponDiscount?: number;
   totalPrice: number;
   providerId: string;
   providerName: string;
@@ -26,9 +30,12 @@ interface CartContextType {
   cartItems: CartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (item: Omit<CartItem, 'id'>) => void;
+  addToCart: (item: Omit<CartItem, 'id'>) => string; // Retourne l'ID du nouvel élément
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateItemExtras: (itemId: string, extras: ExtraItem[]) => void;
+  applyCoupon: (itemId: string, code: string, discount: number) => void;
+  removeCoupon: (itemId: string) => void;
   clearCart: () => void;
   getCartItemsByProvider: (providerId: string) => CartItem[];
 }
@@ -83,6 +90,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...newItem,
       id: itemId
     }]);
+    
+    return itemId; // Retourner l'ID pour pouvoir l'utiliser ailleurs
   };
 
   const removeFromCart = (itemId: string) => {
@@ -115,6 +124,57 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getCartItemsByProvider = (providerId: string) => {
     return cartItems.filter(item => item.providerId === providerId);
   };
+  
+  const updateItemExtras = (itemId: string, extras: ExtraItem[]) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        // Calculer le prix total avec les nouveaux extras
+        const extrasPrice = extras.reduce((total, extra) => total + extra.price, 0);
+        const baseItemPrice = item.totalPrice / item.quantity - (item.extras?.reduce((total, extra) => total + extra.price, 0) || 0);
+        const newTotalPrice = (baseItemPrice + extrasPrice) * item.quantity;
+        
+        return {
+          ...item,
+          extras: extras,
+          totalPrice: newTotalPrice
+        };
+      }
+      return item;
+    }));
+  };
+  
+  const applyCoupon = (itemId: string, code: string, discount: number) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const originalPrice = item.totalPrice;
+        const discountedPrice = originalPrice - (originalPrice * discount / 100);
+        
+        return {
+          ...item,
+          couponCode: code,
+          couponDiscount: discount,
+          totalPrice: discountedPrice
+        };
+      }
+      return item;
+    }));
+  };
+  
+  const removeCoupon = (itemId: string) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === itemId && item.couponDiscount && item.couponCode) {
+        const originalPrice = item.totalPrice / (1 - item.couponDiscount / 100);
+        
+        return {
+          ...item,
+          couponCode: undefined,
+          couponDiscount: undefined,
+          totalPrice: originalPrice
+        };
+      }
+      return item;
+    }));
+  };
 
   return (
     <CartContext.Provider value={{
@@ -124,6 +184,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addToCart,
       removeFromCart,
       updateQuantity,
+      updateItemExtras,
+      applyCoupon,
+      removeCoupon,
       clearCart,
       getCartItemsByProvider
     }}>

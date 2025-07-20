@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { X, Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface Product {
   id: string;
@@ -48,9 +49,9 @@ const mockCustomizations: Customization[] = [
     maxSelections: 1,
     options: [
       { id: '1a', name: 'Riz blanc', price: 0, selected: true },
-      { id: '1b', name: 'Attiéké', price: 8559, selected: false }, // 100 FCFA
-      { id: '1c', name: 'Foutou', price: 8559, selected: false }, // 100 FCFA
-      { id: '1d', name: 'Placali', price: 8559, selected: false }, // 100 FCFA
+      { id: '1b', name: 'Attiéké', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '1c', name: 'Foutou', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '1d', name: 'Placali', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
     ]
   },
   {
@@ -61,7 +62,7 @@ const mockCustomizations: Customization[] = [
     options: [
       { id: '2a', name: 'Sauce graine', price: 0, selected: true },
       { id: '2b', name: 'Sauce claire', price: 0, selected: false },
-      { id: '2c', name: 'Sauce arachide', price: 8559, selected: false }, // 100 FCFA
+      { id: '2c', name: 'Sauce arachide', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
       { id: '2d', name: 'Sauce tomate', price: 0, selected: false },
     ]
   },
@@ -71,10 +72,10 @@ const mockCustomizations: Customization[] = [
     required: false,
     maxSelections: 3,
     options: [
-      { id: '3a', name: 'Poisson fumé', price: 8559, selected: false }, // 100 FCFA
-      { id: '3b', name: 'Viande de bœuf', price: 17118, selected: false }, // 200 FCFA
-      { id: '3c', name: 'Poulet', price: 8559, selected: false }, // 100 FCFA
-      { id: '3d', name: 'Crevettes', price: 17118, selected: false }, // 200 FCFA
+      { id: '3a', name: 'Poisson fumé', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '3b', name: 'Viande de bœuf', price: 2.55, selected: false }, // 200 FCFA ÷ 78.359 = 2.55 points
+      { id: '3c', name: 'Poulet', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '3d', name: 'Crevettes', price: 2.55, selected: false }, // 200 FCFA ÷ 78.359 = 2.55 points
     ]
   },
   {
@@ -102,6 +103,7 @@ export default function ProductCustomizationModal({
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
+  const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -262,7 +264,7 @@ export default function ProductCustomizationModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity 
-        style={styles.overlay} 
+        style={responsiveStyles.overlay} 
         activeOpacity={1} 
         onPress={handleClose}
       >
@@ -275,14 +277,17 @@ export default function ProductCustomizationModal({
                 { scale: scaleAnim },
                 { translateY: slideAnim }
               ],
+              width: responsiveStyles.container.width,
+              maxWidth: responsiveStyles.container.maxWidth,
+              borderRadius: responsiveStyles.container.borderRadius,
             }
           ]}
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <View style={responsiveStyles.header}>
+            <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
               <X size={24} color="#000" />
             </TouchableOpacity>
           </View>

@@ -10,6 +10,7 @@ import {
 import { X, Download, Share } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import { useEffect, useRef } from 'react';
+import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
 interface QRCodeModalProps {
   visible: boolean;

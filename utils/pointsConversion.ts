@@ -1,8 +1,8 @@
 // Utilitaires de conversion points ↔ FCFA
-// Nouveau système : 1 FCFA = 85.59 points | 1 point = 0.01168 FCFA
+// Nouveau système : 1 point = 78.359 FCFA | 1 FCFA = 0.01276 points
 
-export const FCFA_TO_POINTS_RATE = 85.59; // 1 FCFA = 85.59 points
-export const POINTS_TO_FCFA_RATE = 0.01168; // 1 point = 0.01168 FCFA
+export const POINTS_TO_FCFA_RATE = 78.359; // 1 point = 78.359 FCFA
+export const FCFA_TO_POINTS_RATE = 1 / 78.359; // 1 FCFA = 0.01276 points
 
 /**
  * Convertit les points en FCFA
