@@ -115,23 +115,37 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
   };
 
   const formatCustomizations = (customizations: any[]) => {
-    return customizations.map(cat => 
-      cat.selectedOptions.map((opt: any) => opt.name).join(', ')
-    ).join(' • ');
+    if (!customizations || !Array.isArray(customizations)) {
+      return '';
+    }
+    
+    return customizations.map(cat => {
+      // Vérifier si c'est la nouvelle structure avec selectedOptions
+      if (cat.selectedOptions && Array.isArray(cat.selectedOptions)) {
+        return cat.selectedOptions.map((opt: any) => opt.name).join(', ');
+      }
+      // Ancienne structure avec options directes
+      else if (cat.options && Array.isArray(cat.options)) {
+        return cat.options.map((opt: any) => opt.name).join(', ');
+      }
+      // Structure simple avec juste le nom
+      else if (cat.name) {
+        return cat.name;
+      }
+      return '';
+    }).filter(str => str.length > 0).join(' • ');
   };
 
   if (cartItems.length === 0) {
     return (
       <Modal
         visible={visible}
-        transparent={true}
-        animationType="none"
+        transparent={false}
+        animationType="slide"
         onRequestClose={handleClose}
       >
-        <TouchableOpacity 
+        <View 
           style={styles.overlay} 
-          activeOpacity={1} 
-          onPress={handleClose}
         >
           <Animated.View 
             style={[
@@ -159,7 +173,7 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
               </Text>
             </View>
           </Animated.View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     );
   }
@@ -171,10 +185,8 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
       animationType="none"
       onRequestClose={handleClose}
     >
-      <TouchableOpacity 
-        style={responsiveStyles.overlay} 
-        activeOpacity={1} 
-        onPress={handleClose}
+      <View 
+        style={responsiveStyles.overlay}
       >
         <Animated.View 
           style={[
@@ -289,7 +301,7 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
             onClose={() => setShowCouponModal(false)}
           />
         </Animated.View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
@@ -297,16 +309,16 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   container: {
-    width: '95%',
-    maxWidth: 400,
-    maxHeight: '85%',
+    width: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   header: {

@@ -41,17 +41,17 @@ export const useResponsiveDimensions = (): ResponsiveDimensions => {
 };
 
 // Hook pour styles de modal responsifs
-export const useResponsiveModalStyles = () => {
+export const useResponsiveModalStyles = (fullScreen?: boolean) => {
   const dimensions = useResponsiveDimensions();
-  const { isLargeScreen, isTablet, isSamsungS23Ultra, height } = dimensions;
+  const { isLargeScreen, isTablet, isSamsungS23Ultra, height, width } = dimensions;
   
-  // Déterminer les styles en fonction de la taille d'écran
-  const modalWidth = isTablet ? '70%' : (isLargeScreen || isSamsungS23Ultra) ? '85%' : '95%';
-  const modalMaxWidth = isTablet ? 600 : (isLargeScreen || isSamsungS23Ultra) ? 450 : 400;
-  const modalPadding = isTablet ? 28 : (isLargeScreen || isSamsungS23Ultra) ? 24 : 20;
-  const modalBorderRadius = isTablet ? 28 : (isLargeScreen || isSamsungS23Ultra) ? 24 : 20;
-  const titleFontSize = isTablet ? 24 : (isLargeScreen || isSamsungS23Ultra) ? 22 : 18;
-  const modalMaxHeight = Math.floor(height * 0.8); // Conversion en nombre pour Animated.View
+  // Déterminer les styles en fonction de la taille d'écran et du mode fullScreen
+  const modalWidth = fullScreen ? '100%' : (isTablet ? '70%' : (isLargeScreen || isSamsungS23Ultra) ? '85%' : '95%');
+  const modalMaxWidth = fullScreen ? width : (isTablet ? 600 : (isLargeScreen || isSamsungS23Ultra) ? 450 : 400);
+  const modalPadding = fullScreen ? (isTablet ? 32 : 24) : (isTablet ? 28 : (isLargeScreen || isSamsungS23Ultra) ? 24 : 20);
+  const modalBorderRadius = fullScreen ? 0 : (isTablet ? 28 : (isLargeScreen || isSamsungS23Ultra) ? 24 : 20);
+  const titleFontSize = fullScreen ? (isTablet ? 28 : 24) : (isTablet ? 24 : (isLargeScreen || isSamsungS23Ultra) ? 22 : 18);
+  const modalMaxHeight = fullScreen ? height : Math.floor(height * 0.8); // Hauteur plein écran ou 80%
   
   return {
     overlay: {

@@ -26,17 +26,19 @@ interface ExtrasSelectionModalProps {
   onClose: () => void;
   onContinue: (selectedExtras: ExtraItem[]) => void;
   extras: ExtraItem[];
+  fullScreen?: boolean; // Propriété optionnelle pour afficher en plein écran
 }
 
 export default function ExtrasSelectionModal({
   visible,
   onClose,
   onContinue,
-  extras
+  extras,
+  fullScreen = false // Valeur par défaut : false
 }: ExtrasSelectionModalProps) {
   const [selectedExtras, setSelectedExtras] = useState<ExtraItem[]>([]);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-  const responsiveStyles = useResponsiveModalStyles();
+  const responsiveStyles = useResponsiveModalStyles(fullScreen);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -128,13 +130,22 @@ export default function ExtrasSelectionModal({
       <TouchableOpacity 
         style={responsiveStyles.overlay} 
         activeOpacity={1} 
-        onPress={handleClose}
+        onPress={fullScreen ? undefined : handleClose} // Ne ferme pas en mode plein écran
       >
         <Animated.View 
           style={[
             styles.container,
             {
-              width: responsiveStyles.container.maxWidth,
+              opacity: fadeAnim,
+              transform: [
+                { scale: scaleAnim },
+                { translateY: slideAnim }
+              ]
+            },
+            // Appliquer les styles responsifs en fonction de fullScreen
+            {
+              width: responsiveStyles.container.width as any, // Conversion pour éviter l'erreur de type
+              maxWidth: responsiveStyles.container.maxWidth,
               maxHeight: responsiveStyles.container.maxHeight,
               borderRadius: responsiveStyles.container.borderRadius,
               shadowColor: responsiveStyles.container.shadowColor,
@@ -142,12 +153,8 @@ export default function ExtrasSelectionModal({
               shadowOpacity: responsiveStyles.container.shadowOpacity,
               shadowRadius: responsiveStyles.container.shadowRadius,
               elevation: responsiveStyles.container.elevation,
-              opacity: fadeAnim,
-              transform: [
-                { scale: scaleAnim },
-                { translateY: slideAnim }
-              ],
-            },
+              ...(fullScreen && { height: '100%' }) // Ajouter height: 100% si fullScreen est true
+            }
           ]}
           onStartShouldSetResponder={() => true}
           onResponderGrant={(e) => e.stopPropagation()}

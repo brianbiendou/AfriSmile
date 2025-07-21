@@ -39,6 +39,7 @@ interface ProductCustomizationModalProps {
   onClose: () => void;
   product: Product | null;
   onAddToCart: (product: Product, customizations: any[], quantity: number, totalPrice: number) => void;
+  fullScreen?: boolean; // Propriété optionnelle pour afficher en plein écran
 }
 
 const mockCustomizations: Customization[] = [
@@ -97,13 +98,14 @@ export default function ProductCustomizationModal({
   visible, 
   onClose, 
   product, 
-  onAddToCart 
+  onAddToCart,
+  fullScreen = false // Valeur par défaut : false
 }: ProductCustomizationModalProps) {
   const [customizations, setCustomizations] = useState<Customization[]>(mockCustomizations);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
-  const responsiveStyles = useResponsiveModalStyles();
+  const responsiveStyles = useResponsiveModalStyles(fullScreen);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -266,7 +268,7 @@ export default function ProductCustomizationModal({
       <TouchableOpacity 
         style={responsiveStyles.overlay} 
         activeOpacity={1} 
-        onPress={handleClose}
+        onPress={fullScreen ? undefined : handleClose} // Ne ferme pas en mode plein écran
       >
         <Animated.View 
           style={[
@@ -277,9 +279,13 @@ export default function ProductCustomizationModal({
                 { scale: scaleAnim },
                 { translateY: slideAnim }
               ],
-              width: responsiveStyles.container.width,
+            },
+            // Appliquer les styles responsifs en fonction de fullScreen
+            {
+              width: responsiveStyles.container.width as any, // Conversion pour éviter l'erreur de type
               maxWidth: responsiveStyles.container.maxWidth,
               borderRadius: responsiveStyles.container.borderRadius,
+              ...(fullScreen && { height: '100%' }) // Ajouter height: 100% si fullScreen est true
             }
           ]}
           onStartShouldSetResponder={() => true}

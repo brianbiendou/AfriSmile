@@ -329,6 +329,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 99999,
+    elevation: 99999, // For Android
   },
   container: {
     width: '90%',

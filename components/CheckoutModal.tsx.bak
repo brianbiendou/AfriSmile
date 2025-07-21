@@ -1,4 +1,4 @@
-﻿import {
+import {
   View,
   Text,
   StyleSheet,
@@ -14,7 +14,22 @@ import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { pointsToFcfa, fcfaToPoints, generateMobileMoneyFees } from '@/utils/pointsConversion';
-import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
+import { useResponsiveModalStyles      <CouponModal 
+        visible={showCouponModal}
+        onClose={() => setShowCouponModal(false)}
+        onApplyCoupon={handleApplyCoupon}
+        totalPoints={cartTotal}
+        providerId={selectedCartItemId ? 
+          cartItems.find(item => item.id === selectedCartItemId)?.providerId : undefined}
+      />
+      
+      {/* Popup Gold - placée à la fin pour s'afficher au premier plan */}
+      <PromoPopup 
+        visible={showGoldPopup} 
+        onClose={() => setShowGoldPopup(false)}
+      />
+    </>
+  );/hooks/useResponsiveDimensions';
 import CouponModal from './CouponModal';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
@@ -47,18 +62,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     orange: generateMobileMoneyFees(),
     moov: generateMobileMoneyFees(),
   });
-
-  // Mettre à jour les totaux quand cartTotal change (à cause des coupons ou modifications du panier)
-  useEffect(() => {
-    if (globalDiscountPercentage === 0) {
-      setOriginalTotal(cartTotal);
-      setDiscountedTotal(cartTotal);
-    } else {
-      const discounted = Math.round(cartTotal * (1 - globalDiscountPercentage / 100));
-      setOriginalTotal(cartTotal);
-      setDiscountedTotal(discounted);
-    }
-  }, [cartTotal, globalDiscountPercentage]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -149,27 +152,11 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   ];
 
   const formatCustomizations = (customizations: any[]) => {
-    if (!customizations || !Array.isArray(customizations)) {
-      return '';
-    }
-    
-    return customizations.map(cat => {
-      // Vérifier si c'est la nouvelle structure avec selectedOptions
-      if (cat.selectedOptions && Array.isArray(cat.selectedOptions)) {
-        return `${cat.categoryName || cat.name}: ${cat.selectedOptions.map((opt: any) => opt.name).join(', ')}`;
-      }
-      // Ancienne structure avec options directes
-      else if (cat.options && Array.isArray(cat.options)) {
-        return `${cat.name}: ${cat.options.map((opt: any) => opt.name).join(', ')}`;
-      }
-      // Structure simple avec juste le nom
-      else if (cat.name) {
-        return cat.name;
-      }
-      return '';
-    }).filter(str => str.length > 0).join(' | ');
+    return customizations.map(cat => 
+      cat.selectedOptions.map((opt: any) => opt.name).join(', ')
+    ).join(' • ');
   };
-
+  
   const handleApplyCoupon = (coupon: Coupon) => {
     if (selectedCartItemId) {
       applyCoupon(selectedCartItemId, coupon.code, coupon.discount);
@@ -187,6 +174,33 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
         setShowCouponAnimation(false);
       }, 2500);
     }
+  };
+  
+  // Gestionnaire pour appliquer une remise de base
+  const handleApplyDiscount = (discountPercentage: number, checkMinimum = false) => {
+    if (checkMinimum && cartTotal <= 70) {
+      Alert.alert(
+        "Remise non disponible", 
+        "Cette remise nécessite un total de commande supérieur à 70 points."
+      );
+      return;
+    }
+    
+    setGlobalDiscountPercentage(discountPercentage);
+    
+    // Calculer le total avec réduction
+    const discounted = Math.round(cartTotal * (1 - discountPercentage / 100));
+    setOriginalTotal(cartTotal);
+    setDiscountedTotal(discounted);
+    
+    // Enregistrer la remise dans la base de données (simulation)
+    console.log(`Remise de base appliquée: ${discountPercentage}% pour le client ${user?.id}`);
+    
+    // Afficher une notification
+    Alert.alert(
+      "Remise appliquée",
+      `Une remise de ${discountPercentage}% a été appliquée à votre commande.`
+    );
   };
   
   // Gestionnaire pour appliquer une remise Gold
@@ -233,31 +247,24 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
         <Modal
           visible={visible}
           transparent={false}
-          animationType="none"
+          animationType="slide"
           onRequestClose={handleClose}
         >
-          <Animated.View 
-            style={[
-              styles.overlay,
-              {
-                opacity: fadeAnim,
-              }
-            ]}
+          <View 
+            style={responsiveStyles.overlay} 
           >
             <Animated.View 
               style={[
-                responsiveStyles.container, 
                 styles.container,
                 {
-                  transform: [
-                    { translateY: slideAnim }
-                  ],
-                  backgroundColor: '#FFF',
-                  borderTopLeftRadius: 25,
-                  borderTopRightRadius: 25,
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
                 }
               ]}
+              onStartShouldSetResponder={() => true}
+              onResponderGrant={(e) => e.stopPropagation()}
             >
+              {/* ...existing code... */}
               <View style={responsiveStyles.header}>
                 <Text style={responsiveStyles.title}>Récapitulatif de commande</Text>
                 <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
@@ -304,7 +311,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                         : "Remise standard pour tous les clients"}
                     </Text>
                     {!user || user.membershipType !== 'gold' ? (
-                      <Text style={styles.upgradeText}>Passer à Gold pour doubler votre remise </Text>
+                      <Text style={styles.upgradeText}>Passer à Gold pour doubler votre remise →</Text>
                     ) : (
                       <Text style={styles.appliedDiscount}>
                         {globalDiscountPercentage === 10 ? "Remise de 10% appliquée" : "Cliquez pour appliquer"}
@@ -316,7 +323,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   <TouchableOpacity 
                     style={[
                       styles.couponZone, 
-                      { marginTop: 8 }, 
+                      { marginTop: 12 }, 
                       globalDiscountPercentage === (user?.membershipType === 'gold' ? 15 : 7) ? styles.selectedCouponZone : {},
                       cartTotal <= 100 ? styles.disabledCouponZone : {}
                     ]}
@@ -344,7 +351,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     </Text>
                     {cartTotal > 100 ? (
                       !user || user.membershipType !== 'gold' ? (
-                        <Text style={styles.upgradeText}>Passer à Gold pour plus que doubler votre remise </Text>
+                        <Text style={styles.upgradeText}>Passer à Gold pour plus que doubler votre remise →</Text>
                       ) : (
                         <Text style={styles.appliedDiscount}>
                           {globalDiscountPercentage === 15 ? "Remise de 15% appliquée" : "Cliquez pour appliquer"}
@@ -375,7 +382,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     }}
                   >
                     <View style={styles.couponHeader}>
-                      <Text style={styles.couponEmoji}></Text>
+                      <Text style={styles.couponEmoji}>🎁</Text>
                       <Text style={styles.couponTitle}>Première Commande (12%)</Text>
                     </View>
                     <Text style={styles.couponDescription}>
@@ -421,7 +428,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                           <View style={styles.quantityControls}>
                             <TouchableOpacity 
                               style={styles.quantityControlButton}
-                              onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                              onPress={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
                             >
                               <Minus size={16} color="#333" />
                             </TouchableOpacity>
@@ -445,37 +452,39 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                 {/* Méthode de paiement */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Méthode de paiement</Text>
+                  
+                  {/* Paiement par points */}
                   <TouchableOpacity
                     style={[
                       styles.paymentMethod,
-                      selectedPayment === 'points' && styles.selectedMethod
+                      selectedPayment === pointsPayment.id && styles.selectedPaymentMethod,
                     ]}
-                    onPress={() => setSelectedPayment('points')}
+                    onPress={() => setSelectedPayment(pointsPayment.id as any)}
                   >
                     <View style={styles.methodContent}>
                       <View style={[styles.methodIcon, { backgroundColor: pointsPayment.color }]}>
                         <pointsPayment.icon size={20} color="#fff" />
                       </View>
-                      <View style={styles.methodInfo}>
-                        <Text style={styles.methodName}>{pointsPayment.name}</Text>
-                        <Text style={styles.pointsBalance}>
-                          Solde: {user?.points?.toLocaleString() || 0} pts
-                        </Text>
-                      </View>
+                      <Text style={styles.methodName}>{pointsPayment.name}</Text>
                     </View>
-                    <View style={styles.radioOuter}>
-                      {selectedPayment === 'points' && (
-                        <View style={styles.radioInner} />
-                      )}
+                    <View style={[
+                      styles.radioButton,
+                      selectedPayment === pointsPayment.id && styles.radioButtonSelected
+                    ]}>
+                      {selectedPayment === pointsPayment.id && <View style={styles.radioButtonInner} />}
                     </View>
                   </TouchableOpacity>
 
-                  {mobileMoneyMethods.map(method => (
+                  {/* Titre Mobile Money */}
+                  <Text style={styles.mobileMoneyTitle}>Mobile Money</Text>
+                  
+                  {/* Méthodes Mobile Money */}
+                  {mobileMoneyMethods.map((method) => (
                     <TouchableOpacity
                       key={method.id}
                       style={[
                         styles.paymentMethod,
-                        selectedPayment === method.id && styles.selectedMethod
+                        selectedPayment === method.id && styles.selectedPaymentMethod,
                       ]}
                       onPress={() => setSelectedPayment(method.id as any)}
                     >
@@ -490,10 +499,11 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.radioOuter}>
-                        {selectedPayment === method.id && (
-                          <View style={styles.radioInner} />
-                        )}
+                      <View style={[
+                        styles.radioButton,
+                        selectedPayment === method.id && styles.radioButtonSelected
+                      ]}>
+                        {selectedPayment === method.id && <View style={styles.radioButtonInner} />}
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -501,66 +511,58 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
               </ScrollView>
 
               <View style={styles.footer}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <View>
-                    {globalDiscountPercentage > 0 && (
-                      <Text style={styles.originalPrice}>
-                        {originalTotal.toLocaleString()} pts
-                      </Text>
-                    )}
-                    <Text style={styles.totalAmount}>
-                      {(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts
-                    </Text>
-                    {globalDiscountPercentage > 0 && (
-                      <View style={styles.discountRow}>
-                        <Text style={styles.discountText}>
-                          Économie: {(originalTotal - discountedTotal).toLocaleString()} pts
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+                <View style={styles.totalContainer}>
+                  <Text style={styles.totalLabel}>Total à payer</Text>
+                  <Text style={styles.totalAmount}>
+                    {selectedPayment === 'points' 
+                      ? `${cartTotal.toLocaleString()} pts`
+                      : `${pointsToFcfa(cartTotal).toLocaleString()} FCFA`
+                    }
+                  </Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.payButton, cartItems.length === 0 && styles.disabledButton]}
-                  onPress={handlePayment}
-                  disabled={cartItems.length === 0 || isProcessing}
-                >
-                  {isProcessing ? (
-                    <Text style={styles.payButtonText}>Traitement en cours...</Text>
-                  ) : (
-                    <Text style={styles.payButtonText}>
-                      Payer {(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts
+                
+                {selectedPayment === 'points' && user && user.points < cartTotal && (
+                  <View style={styles.insufficientFundsWarning}>
+                    <Text style={styles.warningText}>
+                      ⚠️ Solde insuffisant ({user?.points?.toLocaleString() || 0} pts disponibles)
                     </Text>
-                  )}
+                  </View>
+                )}
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.payButton, 
+                    (isProcessing || (selectedPayment === 'points' && (!user || user.points < cartTotal))) && styles.payButtonDisabled
+                  ]} 
+                  onPress={handlePayment}
+                  disabled={isProcessing || (selectedPayment === 'points' && (!user || user.points < cartTotal))}
+                >
+                  <Text style={styles.payButtonText}>
+                    {isProcessing ? 'Traitement...' : 'Confirmer et payer'}
+                  </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Animation de coupon */}
+              <AnimatedCoupon
+                visible={showCouponAnimation}
+                couponCode={animatedCouponData?.code}
+                discount={animatedCouponData?.discount}
+                onAnimationEnd={() => setShowCouponAnimation(false)}
+              />
             </Animated.View>
-          </Animated.View>
+          </View>
         </Modal>
       )}
 
-      {/* Animation de coupon */}
-      <AnimatedCoupon 
-        visible={showCouponAnimation}
-        couponCode={animatedCouponData?.code}
-        discount={animatedCouponData?.discount}
-      />
-
-      {/* Modal de sélection de coupon */}
-      <CouponModal 
+      {/* Modal Coupon */}
+      <CouponModal
         visible={showCouponModal}
         onClose={() => setShowCouponModal(false)}
         onApplyCoupon={handleApplyCoupon}
         totalPoints={cartTotal}
         providerId={selectedCartItemId ? 
           cartItems.find(item => item.id === selectedCartItemId)?.providerId : undefined}
-      />
-      
-      {/* Popup Gold - placée à la fin pour s'afficher au premier plan */}
-      <PromoPopup 
-        visible={showGoldPopup} 
-        onClose={() => setShowGoldPopup(false)}
       />
     </>
   );
@@ -569,7 +571,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
@@ -578,27 +580,42 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     maxHeight: '100%',
     backgroundColor: '#fff',
-    borderRadius: 30,
+    borderRadius: 0,
     overflow: 'hidden',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 30,
   },
-  section: {
-    marginBottom: 20,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
     marginBottom: 12,
-    color: '#333',
   },
   deliveryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   deliveryText: {
     marginLeft: 8,
@@ -607,14 +624,14 @@ const styles = StyleSheet.create({
   },
   orderItem: {
     flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 12,
+    marginBottom: 10,
   },
   itemImage: {
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderRadius: 8,
     marginRight: 12,
   },
@@ -622,171 +639,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#000',
+    marginBottom: 2,
   },
   providerName: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
     marginBottom: 4,
   },
   customizations: {
-    fontSize: 12,
-    color: '#555',
-    marginTop: 2,
+    fontSize: 11,
+    color: '#888',
+    marginBottom: 6,
+    lineHeight: 14,
   },
   extras: {
-    fontSize: 12,
-    color: '#555',
-    marginTop: 2,
+    fontSize: 11,
+    color: '#2F855A',
+    marginBottom: 6,
+    lineHeight: 14,
+    fontWeight: '500',
   },
   couponApplied: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#E53E3E',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  addCouponButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF2F2',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginTop: 6,
     marginBottom: 6,
-  },
-  addCouponText: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    marginLeft: 4,
+    lineHeight: 14,
+    fontWeight: '500',
   },
   itemFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
   },
   quantity: {
     fontSize: 14,
-    color: '#666',
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#00B14F',
-  },
-  paymentMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  selectedMethod: {
-    borderColor: '#00B14F',
-    backgroundColor: '#F0FFF4',
-  },
-  methodContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  methodIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  methodInfo: {
-    flex: 1,
-  },
-  methodName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginHorizontal: 10,
     color: '#333',
-    marginBottom: 2,
+    fontWeight: '500',
   },
-  pointsBalance: {
-    fontSize: 14,
-    color: '#666',
-  },
-  methodFee: {
-    fontSize: 14,
-    color: '#E53E3E',
-  },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#CCC',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#00B14F',
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
-  },
-  totalRow: {
+  quantityControl: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  originalPrice: {
-    fontSize: 14,
-    color: '#999',
-    textDecorationLine: 'line-through',
-    textAlign: 'right',
-  },
-  totalAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#00B14F',
-    textAlign: 'right',
-  },
-  payButton: {
-    backgroundColor: '#00B14F',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  disabledButton: {
-    backgroundColor: '#CCCCCC',
-  },
-  payButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   quantityButton: {
     width: 28,
@@ -802,6 +698,211 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  paymentMethod: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    marginBottom: 8,
+    justifyContent: 'space-between',
+  },
+  selectedPaymentMethod: {
+    backgroundColor: '#F0F9F4',
+    borderWidth: 1,
+    borderColor: '#00B14F',
+  },
+  methodIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  methodContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  methodName: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '500',
+  },
+  mobileMoneyTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+    marginTop: 20,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  methodInfo: {
+    flex: 1,
+  },
+  methodFee: {
+    fontSize: 12,
+    color: '#FF3B30',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  radioButton: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  radioButtonSelected: {
+    borderColor: '#00B14F',
+    backgroundColor: '#00B14F',
+  },
+  radioButtonInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#fff',
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  totalAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  payButton: {
+    backgroundColor: '#000',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  payButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  payButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  insufficientFundsWarning: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
+  warningText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  addCouponButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#FFD1D1',
+  },
+  addCouponText: {
+    fontSize: 12,
+    color: '#FF6B6B',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  discountSection: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  discountTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  discountButtonsContainer: {
+    marginTop: 5,
+  },
+  discountCategory: {
+    marginBottom: 10,
+  },
+  discountCategoryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 6,
+  },
+  discountButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  discountButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 3,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  goldButton: {
+    backgroundColor: '#FFD700',
+    shadowColor: '#FFD700',
+  },
+  discountButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+    textAlign: 'center',
+    flex: 1,
+  },
+  originalAmount: {
+    fontSize: 16,
+    color: '#888',
+    textDecorationLine: 'line-through',
+    textAlign: 'right',
   },
   discountRow: {
     flexDirection: 'row',

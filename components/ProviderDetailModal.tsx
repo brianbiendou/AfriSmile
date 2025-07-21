@@ -9,12 +9,13 @@ import {
   Alert,
   Animated,
 } from 'react-native';
-import { X, QrCode, Star, MapPin, ShoppingBag, Plus } from 'lucide-react-native';
+import { X, Star, MapPin, ShoppingBag, Plus } from 'lucide-react-native';
 import { Clock, Percent } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useRef } from 'react';
 import { type ProviderCompat } from '@/data/providers';
 import { useCart } from '@/contexts/CartContext';
-import QRCodeDisplay from '@/components/QRCodeDisplay';
+
 import LoadingScreen from '@/components/LoadingScreen';
 import ProductCustomizationModal from '@/components/ProductCustomizationModal';
 import ExtrasSelectionModal from '@/components/ExtrasSelectionModal';
@@ -80,7 +81,6 @@ const mockMenuItems = [
 ];
 
 export default function ProviderDetailModal({ visible, onClose, provider, userPoints }: ProviderDetailModalProps) {
-  const [showQR, setShowQR] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -88,7 +88,6 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   const [showUnsoldProducts, setShowUnsoldProducts] = useState(false);
   const [showExtrasSelection, setShowExtrasSelection] = useState(false);
   const [currentCartItemId, setCurrentCartItemId] = useState<string | null>(null);
-  const [qrTimer, setQrTimer] = useState(10);
   
   const { addToCart, updateItemExtras } = useCart();
   const responsiveStyles = useResponsiveModalStyles();
@@ -100,56 +99,52 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   useEffect(() => {
     if (visible) {
       setShowLoading(true);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
+      // Animation améliorée avec léger rebond
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1.05, // Légèrement plus grand pour l'effet de rebond
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 150,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.9);
-      scrollY.setValue(0);
-      setShowLoading(false);
-      setShowQR(false);
-      setShowMenu(false);
-      setShowUnsoldProducts(false);
+      // Animation de fermeture plus douce
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        fadeAnim.setValue(0);
+        scaleAnim.setValue(0.9);
+        scrollY.setValue(0);
+        setShowLoading(false);
+        setShowMenu(false);
+        setShowUnsoldProducts(false);
+      });
     }
   }, [visible]);
 
-  // Timer pour mettre à jour le temps restant
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (showQR && qrTimer > 0) {
-      interval = setInterval(() => {
-        setQrTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (qrTimer === 0) {
-      setQrTimer(10);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [showQR, qrTimer]);
-
   const handleLoadingComplete = () => {
     setShowLoading(false);
-  };
-
-  const handleShowQR = () => {
-    setShowQR(true);
-    setQrTimer(10);
-  };
-
-  const handleCloseQR = () => {
-    setShowQR(false);
-    setQrTimer(10);
   };
 
   const handleShowMenu = () => {
@@ -239,24 +234,23 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   };
 
   const handleClose = () => {
+    // Animation de fermeture avec effet de rétrécissement
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 250,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 0.9,
-        duration: 200,
+        duration: 250,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setShowQR(false);
       setShowMenu(false);
       setShowCustomization(false);
       setShowUnsoldProducts(false);
       setSelectedProduct(null);
-      setQrTimer(10);
       scrollY.setValue(0);
       onClose();
     });
@@ -287,30 +281,33 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
     <>
       {/* Modal principale du prestataire */}
       <Modal
-        visible={visible && !showQR && !showMenu}
+        visible={visible && !showMenu}
         transparent={true}
-        animationType="none"
+        animationType="fade"
         onRequestClose={handleClose}
       >
-        <TouchableOpacity 
+        <View 
           style={[
             responsiveStyles.overlay,
             {
               opacity: fadeAnim,
+              backgroundColor: 'rgba(0,0,0,0.5)', // Fond semi-transparent
+              justifyContent: 'center', // Centrage vertical
             }
           ]}
-          activeOpacity={1}
-          onPress={handleClose}
         >
           <Animated.View 
             style={[
               styles.container,
               {
-                width: responsiveStyles.container.width,
-                maxWidth: responsiveStyles.container.maxWidth,
-                borderRadius: responsiveStyles.container.borderRadius,
+                width: '85%', // Prend 85% de la largeur de l'écran (légèrement réduit)
+                maxWidth: 450, // Taille maximale réduite
+                borderRadius: 20, // Coins légèrement moins arrondis
                 opacity: fadeAnim,
                 transform: [{ scale: scaleAnim }],
+                alignSelf: 'center', // Centrage horizontal
+                maxHeight: '65%', // Limite la hauteur à 65% de l'écran (plus compact)
+                marginVertical: 30, // Marge réduite
               }
             ]}
             onStartShouldSetResponder={() => true}
@@ -323,152 +320,110 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
             
             {!showLoading && (
               <>
+                {/* Bouton de fermeture */}
                 <View style={responsiveStyles.header}>
-                  <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
+                  <TouchableOpacity onPress={handleClose} style={[responsiveStyles.closeButton, {
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: 24,
+                    padding: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 5,
+                  }]}>
                     <X size={24} color="#fff" />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.headerImageContainer}>
-                  <Animated.Image
-                    source={{ uri: provider.image }} 
-                    style={[
-                      styles.headerImage,
-                      {
-                        transform: [{ translateY: headerImageTransform }],
-                      }
-                    ]} 
-                  />
+                {/* Image d'en-tête avec effet gradient circulaire */}
+                <View style={styles.headerCircleContainer}>
+                  <View style={styles.headerCircleImageContainer}>
+                    <Image
+                      source={{ uri: provider.image }} 
+                      style={styles.headerCircleImage}
+                    />
+                    {/* Badge de promotion sur l'image */}
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>-{provider.discount}%</Text>
+                    </View>
+                  </View>
                 </View>
                 
-                <Animated.ScrollView 
-                  style={responsiveStyles.content} 
-                  showsVerticalScrollIndicator={false}
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
-                >
-                  <View style={styles.providerInfo}>
-                    <Text style={[styles.providerName, { fontSize: responsiveStyles.title.fontSize }]}>{provider.name}</Text>
-                    <Text style={styles.providerCategory}>{provider.category}</Text>
+                <View style={styles.modalContent}>
+                  {/* Informations du prestataire - Version simplifiée */}
+                  <View style={styles.providerInfoCompact}>
+                    <Text style={[styles.providerNameCompact, { fontSize: responsiveStyles.title.fontSize }]}>
+                      {provider.name}
+                    </Text>
                     
-                    <View style={styles.infoRow}>
-                      <View style={styles.rating}>
-                        <Star size={16} color="#FFD700" fill="#FFD700" />
-                        <Text style={styles.ratingText}>{provider.rating}</Text>
-                      </View>
-                      
-                      <View style={styles.location}>
-                        <MapPin size={16} color="#8E8E8E" />
-                        <Text style={styles.locationText}>{provider.location}</Text>
-                      </View>
-                      
-                      <View style={styles.discount}>
-                        <Text style={styles.discountText}>-{provider.discount}%</Text>
-                      </View>
+                    <View style={styles.ratingRow}>
+                      <Star size={14} color="#FFD700" fill="#FFD700" />
+                      <Text style={styles.ratingTextCompact}>{provider.rating}</Text>
+                      <Text style={styles.providerCategoryCompact}> • {provider.category}</Text>
                     </View>
                     
-                    <Text style={styles.estimatedTime}>Temps estimé: {provider.estimatedTime}</Text>
+                    <View style={styles.locationRow}>
+                      <MapPin size={14} color="#555" />
+                      <Text style={styles.locationTextCompact}>{provider.location}</Text>
+                    </View>
+                    
+                    <View style={styles.deliveryRow}>
+                      <Clock size={14} color="#4A90E2" />
+                      <Text style={styles.deliveryText}>Livraison en {provider.estimatedTime}</Text>
+                    </View>
                   </View>
 
-                  {/* Action Buttons - Vertical Layout */}
-                  <View style={styles.actionSection}>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#00B14F' }]} 
-                      onPress={handleShowQR}
-                    >
-                      <QrCode size={24} color="#fff" />
-                      <Text style={styles.actionButtonText}>Profitez de la réduction</Text>
-                    </TouchableOpacity>
+                  {/* Séparateur décoratif */}
+                  <View style={styles.separator} />
 
+                  {/* Action Buttons - Vertical Layout avec style amélioré - Centré */}
+                  <View style={styles.actionSectionCentered}>
                     <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#FF6B6B' }]} 
+                      style={[
+                        styles.actionButtonCentered, 
+                        { 
+                          backgroundColor: '#FF6B6B',
+                        }
+                      ]} 
                       onPress={handleShowMenu}
                     >
-                      <ShoppingBag size={24} color="#fff" />
-                      <Text style={styles.actionButtonText}>Commander à domicile</Text>
+                      <ShoppingBag size={18} color="#fff" strokeWidth={2} />
+                      <Text style={styles.actionButtonTextCentered}>Commander</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#FF9500' }]} 
+                      style={[
+                        styles.actionButtonCentered, 
+                        { 
+                          backgroundColor: '#FF9500',
+                        }
+                      ]} 
                       onPress={handleShowUnsoldProducts}
                     >
-                      <Text style={styles.actionButtonEmoji}>🔥</Text>
-                      <Text style={styles.actionButtonText}>Invendus du Jour</Text>
+                      <Text style={styles.actionButtonEmojiCentered}>🔥</Text>
+                      <Text style={styles.actionButtonTextCentered}>Invendus</Text>
                     </TouchableOpacity>
                   </View>
-                </Animated.ScrollView>
+                </View>
               </>
             )}
           </Animated.View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* QR Code Modal - Overlay avec flou */}
-      <Modal
-        visible={showQR}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCloseQR}
-      >
-        <TouchableOpacity 
-          style={styles.qrOverlay}
-          activeOpacity={1}
-          onPress={handleCloseQR}
-        >
-          {/* Page floutée en arrière-plan */}
-          <View style={[styles.blurredBackground, { opacity: 0.3 }]}>
-            <Image source={{ uri: provider.image }} style={styles.headerImage} />
-            <View style={styles.content}>
-              <View style={styles.providerInfo}>
-                <Text style={styles.providerName}>{provider.name}</Text>
-                <Text style={styles.providerCategory}>{provider.category}</Text>
-              </View>
-            </View>
-          </View>
-          
-          <View style={styles.qrContainer}>
-            <TouchableOpacity onPress={handleCloseQR} style={styles.qrCloseButton}>
-              <X size={28} color="#fff" />
-            </TouchableOpacity>
-
-            <View 
-              style={styles.qrContent}
-              onStartShouldSetResponder={() => true}
-              onResponderGrant={(e) => e.stopPropagation()}
-            >
-              <Text style={styles.qrTitle}>Code de réduction</Text>
-              <Text style={styles.qrSubtitle}>
-                Faites scanner ce code par le serveur ou le restaurant pour profiter de la réduction sur votre addition
-              </Text>
-              
-              <QRCodeDisplay 
-                provider={provider} 
-                timer={qrTimer}
-                onExpire={handleCloseQR}
-              />
-              
-              <Text style={styles.qrDiscountInfo}>
-                Réduction de {provider.discount}% applicable sur votre commande
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Menu Modal - Overlay avec flou */}
       <Modal
         visible={showMenu}
-        transparent={true}
-        animationType="fade"
+        transparent={false}
+        animationType="slide"
         onRequestClose={handleCloseMenu}
       >
-        <TouchableOpacity 
+        <View 
           style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={handleCloseMenu}
         >
           {/* Page floutée en arrière-plan */}
-          <View style={[styles.blurredBackground, { opacity: 0.3 }]}>
+          <View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff' }, { opacity: 0.3 }]}>
             <Image source={{ uri: provider.image }} style={styles.headerImage} />
             <View style={styles.content}>
               <View style={styles.providerInfo}>
@@ -640,10 +595,10 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
               ))}
             </Animated.ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
-      {/* Product Customization Modal */}
+      {/* Product Customization Modal - Mode plein écran */}
       <ProductCustomizationModal
         visible={showCustomization}
         onClose={() => {
@@ -652,6 +607,7 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
         }}
         product={selectedProduct}
         onAddToCart={handleAddToCart}
+        fullScreen={true} // Activation du mode plein écran
       />
 
       {/* Unsold Products Modal */}
@@ -661,14 +617,16 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
         provider={provider}
         userPoints={userPoints}
         onAddToCart={handleAddToCart}
+        fullScreen={true} // Activation du mode plein écran
       />
       
-      {/* Extras Selection Modal */}
+      {/* Extras Selection Modal - Mode plein écran */}
       <ExtrasSelectionModal
         visible={showExtrasSelection}
         onClose={handleExtrasClose}
         onContinue={handleExtrasSelected}
         extras={mockExtras}
+        fullScreen={true} // Activation du mode plein écran
       />
     </>
   );
@@ -677,17 +635,21 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)', // Fond semi-transparent
+    justifyContent: 'center', // Alignement au centre
     alignItems: 'center',
   },
   container: {
-    width: '90%',
-    maxWidth: 350,
-    maxHeight: '90%',
+    width: '85%',
+    maxWidth: 450,
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 20, // Coins moins arrondis
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 12, // Ombre légèrement réduite
   },
   header: {
     position: 'absolute',
@@ -701,163 +663,173 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerImageContainer: {
-    height: 150,
+    height: 220, // Image plus haute pour un meilleur impact visuel
     overflow: 'hidden',
+    position: 'relative', // Pour positionner le gradient
   },
   headerImage: {
     width: '100%',
-    height: 150,
+    height: 220,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 30, // Effet carte avec coins arrondis en haut
+    borderTopRightRadius: 30,
+    marginTop: -40, // Chevauchement avec l'image
   },
   providerInfo: {
     marginBottom: 30,
+    paddingTop: 5, // Espacement supplémentaire
+    paddingHorizontal: 10, // Marge horizontale uniforme
   },
   providerName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 5,
+    fontSize: 28, // Légèrement plus grand
+    fontWeight: '800', // Extra bold pour plus d'impact
+    color: '#1A1A1A',
+    marginBottom: 8,
+    letterSpacing: 0.3, // Légère augmentation de l'espacement des lettres pour l'élégance
+    textShadowColor: 'rgba(0, 0, 0, 0.05)', // Ombre très subtile
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   providerCategory: {
-    fontSize: 16,
-    color: '#8E8E8E',
-    marginBottom: 15,
+    fontSize: 17,
+    color: '#555555',
+    marginBottom: 20, // Plus d'espace avant la ligne d'info
+    fontWeight: '600', // Semi-bold pour un meilleur contraste
+    opacity: 0.8, // Légèrement plus doux
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    justifyContent: 'space-between', // Distribution égale des éléments
+    backgroundColor: '#F8F9FA', // Fond légèrement plus clair
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24, // Plus d'espace avant le temps estimé
+    borderWidth: 1, 
+    borderColor: '#EAEAEA', // Bordure subtile
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   rating: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF9E6', // Fond jaune clair pour l'étoile
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFEEBA', // Bordure subtile assortie
   },
   ratingText: {
-    marginLeft: 4,
-    fontSize: 14,
+    marginLeft: 5,
+    fontSize: 16,
     color: '#000',
-    fontWeight: '500',
+    fontWeight: '700', // Bold pour mettre en valeur
   },
   location: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#EFF6FF', // Fond bleu très pâle
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE', // Bordure subtile assortie
   },
   locationText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#8E8E8E',
+    marginLeft: 5,
+    fontSize: 15,
+    color: '#3B82F6', // Bleu plus visible
+    fontWeight: '600', // Semi-bold pour une meilleure lisibilité
   },
   discount: {
     backgroundColor: '#FF6B6B',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)', // Bordure claire pour plus d'effet
+    shadowColor: '#FF6B6B', // Ombre de la même couleur pour un effet halo
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   discountText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '900', // Extra bold pour plus d'impact
+    letterSpacing: 0.7, // Espacement des lettres pour meilleure lisibilité
+    textShadowColor: 'rgba(0, 0, 0, 0.3)', // Ombre pour plus de profondeur
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   actionSection: {
-    gap: 15,
-    marginBottom: 20,
+    gap: 16,
+    marginTop: 10,
+    marginBottom: 30,
+    paddingHorizontal: 12, // Légèrement plus grande marge
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 18, // Plus haut pour une meilleure touche
+    borderRadius: 16, // Plus arrondi pour un look moderne
+    gap: 12, // Plus d'espace entre l'icône et le texte
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8, // Effet d'élévation pour un aspect 3D subtil
+    marginBottom: 14, // Augmente l'espace entre les boutons
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)', // Bordure subtile pour plus d'élégance
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700', // Bold
+    letterSpacing: 0.5, // Espacement des lettres pour l'élégance
+    textShadowColor: 'rgba(0, 0, 0, 0.2)', // Ombre légère sur le texte
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   actionButtonEmoji: {
-    fontSize: 24,
+    fontSize: 26, // Plus grand pour plus d'impact
     color: '#fff',
+    marginRight: 4, // Ajuste légèrement la position de l'emoji
   },
   estimatedTime: {
-    fontSize: 14,
-    color: '#8E8E8E',
-    fontWeight: '500',
-  },
-  // QR Modal Styles
-  qrOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  blurredBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-  },
-  qrContainer: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  qrCloseButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 10,
-  },
-  qrContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  qrTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  qrSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  qrDiscountInfo: {
-    fontSize: 16,
-    color: '#00B14F',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 20,
+    fontSize: 15,
+    color: '#4A90E2',
+    fontWeight: '600', // Semi-bold pour une meilleure lisibilité
+    paddingVertical: 10,
+    marginTop: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start', // S'adapte à la taille du contenu
+    marginBottom: 20, // Espacement avant les boutons d'action
   },
   // Menu Modal Styles
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   menuContainer: {
-    width: '95%',
-    maxWidth: 400,
-    maxHeight: '90%',
+    width: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 0,
     overflow: 'hidden',
     zIndex: 10,
   },
@@ -1051,5 +1023,148 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  
+  // Nouveaux styles pour le modal compact
+  headerCircleContainer: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  headerCircleImageContainer: {
+    width: 90, // Taille réduite
+    height: 90, // Taille réduite
+    borderRadius: 45,
+    overflow: 'hidden',
+    borderWidth: 3, // Bordure plus fine
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  headerCircleImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    bottom: -3,
+    right: -3,
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12, // Plus petit
+    fontWeight: '700',
+  },
+  modalContent: {
+    padding: 15,
+    paddingBottom: 20,
+  },
+  providerInfoCompact: {
+    alignItems: 'center',
+    marginBottom: 10, // Réduit la marge
+  },
+  providerNameCompact: {
+    fontSize: 20, // Police plus petite
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 5, // Marge réduite
+    textAlign: 'center',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5, // Réduit la marge
+  },
+  ratingTextCompact: {
+    fontSize: 14, // Plus petit
+    fontWeight: '700',
+    color: '#000',
+    marginLeft: 3, // Moins d'espace
+  },
+  providerCategoryCompact: {
+    fontSize: 14, // Plus petit
+    color: '#555',
+    fontWeight: '500',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5, // Réduit la marge
+  },
+  locationTextCompact: {
+    marginLeft: 5, // Moins d'espace
+    fontSize: 13, // Plus petit
+    color: '#555',
+    fontWeight: '500',
+  },
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deliveryText: {
+    marginLeft: 5, // Moins d'espace
+    fontSize: 13, // Plus petit
+    color: '#4A90E2',
+    fontWeight: '600',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#EAEAEA',
+    marginVertical: 10, // Réduit la marge
+    width: '70%',
+    alignSelf: 'center',
+  },
+  actionSectionCentered: {
+    gap: 10, // Réduit l'écart
+    alignItems: 'center',
+    marginTop: 5, // Réduit la marge
+    flexDirection: 'row', // Les boutons côte à côte
+    justifyContent: 'space-between', // Espace entre les boutons
+    paddingHorizontal: 10, // Marge horizontale
+  },
+  actionButtonCentered: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12, // Moins de hauteur
+    paddingHorizontal: 16, // Moins de largeur
+    borderRadius: 12,
+    gap: 8, // Moins d'espace
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    flex: 1, // Occupe l'espace disponible
+    marginHorizontal: 5, // Marge entre boutons
+  },
+  actionButtonTextCentered: {
+    color: '#fff',
+    fontSize: 14, // Plus petit
+    fontWeight: '700',
+    letterSpacing: 0.2, // Moins d'espace
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  actionButtonEmojiCentered: {
+    fontSize: 18, // Plus petit
+    color: '#fff',
   },
 });
