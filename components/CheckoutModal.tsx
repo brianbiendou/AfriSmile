@@ -251,9 +251,10 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       {visible && (
         <Modal
           visible={visible}
-          transparent={false}
+          transparent={true}
           animationType="none"
           onRequestClose={handleClose}
+          statusBarTranslucent={true}
         >
           <Animated.View 
             style={[
@@ -271,11 +272,11 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     { translateY: slideAnim }
                   ],
                   backgroundColor: '#FFF',
-                  borderTopLeftRadius: 25,
-                  borderTopRightRadius: 25,
-                  width: '100%',
-                  maxWidth: 400,
-                  maxHeight: '90%',
+                  borderRadius: 25,
+                  width: '95%',
+                  height: '92%',
+                  alignSelf: 'center',
+                  marginTop: '4%',
                 }
               ]}
             >
@@ -511,22 +512,23 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 20,
   },
   container: {
+    flex: 1,
     width: '100%',
-    maxWidth: '100%',
-    maxHeight: '100%',
     backgroundColor: '#fff',
-    borderRadius: 30,
+    borderRadius: 25,
     overflow: 'hidden',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   section: {
     marginBottom: 20,
