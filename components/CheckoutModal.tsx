@@ -19,6 +19,7 @@ import CouponModal from './CouponModal';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
 import PromoPopup from './PromoPopup';
+import GoldMembershipPromo from './GoldMembershipPromo';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -31,6 +32,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const responsiveStyles = useResponsiveModalStyles();
   // État pour contrôler la visibilité de la popup Gold (déplacé en haut)
   const [showGoldPopup, setShowGoldPopup] = useState(false);
+  const [showGoldMembershipPromo, setShowGoldMembershipPromo] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<'points' | 'mtn' | 'orange' | 'moov'>('points');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -193,9 +195,9 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const handleApplyGoldDiscount = (discountPercentage: number, checkMinimum = false) => {
     // Vérifier si l'utilisateur est membre Gold
     if (!user || user.membershipType !== 'gold') {
-      // Afficher directement la popup Gold depuis ce composant
+      // Pour les membres Classic, afficher la nouvelle popup stylée
       setTimeout(() => {
-        setShowGoldPopup(true);
+        setShowGoldMembershipPromo(true);
         // Ne pas fermer la modal de récapitulatif
       }, 0);
       return;
@@ -561,6 +563,16 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       <PromoPopup 
         visible={showGoldPopup} 
         onClose={() => setShowGoldPopup(false)}
+      />
+      
+      {/* Nouvelle popup Gold stylée pour les membres Classic */}
+      <GoldMembershipPromo 
+        visible={showGoldMembershipPromo} 
+        onClose={() => setShowGoldMembershipPromo(false)}
+        onSubscribe={() => {
+          // Logique d'abonnement à implémenter
+          Alert.alert("Abonnement", "Redirection vers le processus d'abonnement Gold");
+        }}
       />
     </>
   );
