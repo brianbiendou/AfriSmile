@@ -309,6 +309,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   selectedPayment={selectedPayment}
                   pointsToFcfa={pointsToFcfa}
                   onApplyDiscount={handleApplyDiscount}
+                  onShowGoldPromo={() => setShowGoldMembershipPromo(true)}
                 />
 
                 {/* Articles commandés */}

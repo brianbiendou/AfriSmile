@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Percent, Star, Gift, Sparkles, Crown, Ticket } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ interface DiscountSectionProps {
   selectedPayment: 'points' | 'mtn' | 'orange' | 'moov';
   pointsToFcfa: (points: number) => number;
   onApplyDiscount: (percentage: number, checkMinimum?: boolean) => void;
+  onShowGoldPromo?: () => void;
 }
 
 export default function DiscountSection({
@@ -25,7 +27,8 @@ export default function DiscountSection({
   user,
   selectedPayment,
   pointsToFcfa,
-  onApplyDiscount
+  onApplyDiscount,
+  onShowGoldPromo
 }: DiscountSectionProps) {
   const [animatedValues] = useState({
     standard: new Animated.Value(1),
@@ -64,88 +67,107 @@ export default function DiscountSection({
     return formatAmount(discountedPrice);
   };
 
+  const isGoldMember = user?.membershipType === 'gold';
+
   const discounts = [
+    // Réductions disponibles pour tous
     {
       id: 'standard',
       type: 'Standard',
-      discount: user?.membershipType === 'gold' ? 10 : 5,
-      condition: 'Sur toute commande',
-      icon: <Ticket size={16} color="#fff" />,
+      discount: isGoldMember ? 10 : 5,
+      condition: 'Toute commande',
+      icon: <Ticket size={12} color="#fff" />,
       gradient: ['#4F46E5', '#7C3AED'],
-      isActive: globalDiscountPercentage === (user?.membershipType === 'gold' ? 10 : 5),
-      isAvailable: true, // Toujours disponible
+      isActive: globalDiscountPercentage === (isGoldMember ? 10 : 5),
+      isAvailable: true,
+      isGoldOnly: false,
       onPress: () => {
         animatePress('standard');
-        const discountValue = user?.membershipType === 'gold' ? 10 : 5;
+        const discountValue = isGoldMember ? 10 : 5;
         onApplyDiscount(discountValue, false);
       }
     },
     {
       id: 'premium',
       type: 'Premium',
-      discount: user?.membershipType === 'gold' ? 15 : 7,
-      condition: user?.membershipType === 'gold' ? 'Commandes > 80 pts' : 'Commandes > 70 pts',
-      icon: <Crown size={16} color="#fff" />,
+      discount: isGoldMember ? 15 : 7,
+      condition: isGoldMember ? '> 80 pts' : '> 70 pts',
+      icon: <Crown size={12} color="#fff" />,
       gradient: ['#F59E0B', '#EF4444'],
-      isActive: globalDiscountPercentage === (user?.membershipType === 'gold' ? 15 : 7),
-      isAvailable: user?.membershipType === 'gold' ? cartTotal > 80 : cartTotal > 70,
-      requiresMinimum: true,
-      minimumAmount: user?.membershipType === 'gold' ? 80 : 70,
+      isActive: globalDiscountPercentage === (isGoldMember ? 15 : 7),
+      isAvailable: isGoldMember ? cartTotal > 80 : cartTotal > 70,
+      isGoldOnly: false,
       onPress: () => {
         animatePress('premium');
-        const minimumRequired = user?.membershipType === 'gold' ? 80 : 70;
-        const discountValue = user?.membershipType === 'gold' ? 15 : 7;
+        const minimumRequired = isGoldMember ? 80 : 70;
+        const discountValue = isGoldMember ? 15 : 7;
         
         if (cartTotal <= minimumRequired) {
           Alert.alert(
             "Remise non disponible", 
-            `Cette remise nécessite un total de commande supérieur à ${minimumRequired} points.`
+            `Cette remise nécessite un total > ${minimumRequired} points.`
           );
           return;
         }
         onApplyDiscount(discountValue, true);
       }
     },
-    {
-      id: 'first',
-      type: 'Première commande',
-      discount: 12,
-      condition: 'Nouveau client',
-      icon: <Gift size={16} color="#fff" />,
-      gradient: ['#10B981', '#059669'],
-      isActive: globalDiscountPercentage === 12,
-      isAvailable: Math.random() > 0.3, // Simulation
-      onPress: () => {
-        animatePress('first');
-        const isFirstOrder = Math.random() > 0.3; // Simulation
-        if (isFirstOrder) {
-          onApplyDiscount(12, false);
-        } else {
-          Alert.alert(
-            "Remise non disponible",
-            "Cette remise est réservée aux nouveaux clients ou premières commandes."
-          );
+    // Réductions Gold exclusives (désactivées pour Classic)
+    ...(isGoldMember ? [] : [
+      {
+        id: 'gold-exclusive',
+        type: 'Gold Exclusive',
+        discount: 20,
+        condition: '> 100 pts',
+        icon: <Crown size={12} color="#FFD700" />,
+        gradient: ['#FFD700', '#FFA500'],
+        isActive: false,
+        isAvailable: false,
+        isGoldOnly: true,
+        onPress: () => {
+          animatePress('premium');
+          onShowGoldPromo?.();
+        }
+      },
+      {
+        id: 'gold-flash',
+        type: 'Flash Gold',
+        discount: 25,
+        condition: 'Membre Gold',
+        icon: <Star size={12} color="#FFD700" />,
+        gradient: ['#FF6B6B', '#FF8E53'],
+        isActive: false,
+        isAvailable: false,
+        isGoldOnly: true,
+        onPress: () => {
+          animatePress('first');
+          onShowGoldPromo?.();
         }
       }
-    }
+    ])
   ];
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Sparkles size={16} color="#FFD700" />
-        <Text style={styles.sectionTitle}>Offres de Réduction</Text>
-        <Sparkles size={16} color="#FFD700" />
+        <Sparkles size={12} color="#FFD700" />
+        <Text style={styles.sectionTitle}>Réductions</Text>
+        <Sparkles size={12} color="#FFD700" />
       </View>
       
-      <View style={styles.discountGrid}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.discountScrollView}
+        contentContainerStyle={styles.discountGrid}
+      >
         {discounts.map((discount, index) => (
           <Animated.View
             key={discount.id}
             style={[
               styles.discountCardContainer,
               {
-                transform: [{ scale: animatedValues[discount.id as keyof typeof animatedValues] }]
+                transform: [{ scale: animatedValues[discount.id as keyof typeof animatedValues] || new Animated.Value(1) }]
               }
             ]}
           >
@@ -153,13 +175,13 @@ export default function DiscountSection({
               style={[
                 styles.discountCard,
                 discount.isActive && styles.activeCard,
-                !discount.isAvailable && styles.disabledCard
+                (!discount.isAvailable || discount.isGoldOnly) && styles.disabledCard
               ]}
               onPress={discount.onPress}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={discount.isAvailable ? discount.gradient as any : ['#E5E7EB', '#D1D5DB'] as any}
+                colors={discount.isAvailable && !discount.isGoldOnly ? discount.gradient as any : ['#E5E7EB', '#D1D5DB'] as any}
                 style={styles.cardGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -173,9 +195,32 @@ export default function DiscountSection({
 
                 {/* Contenu principal */}
                 <View style={styles.cardMainContent}>
-                  {/* Icône */}
-                  <View style={styles.iconContainer}>
-                    {discount.icon}
+                  {/* Header avec icône et status */}
+                  <View style={styles.cardHeader}>
+                    <View style={styles.iconContainer}>
+                      {discount.icon}
+                    </View>
+                    
+                    {/* Status */}
+                    <View style={styles.statusContainer}>
+                      {discount.isActive ? (
+                        <View style={styles.appliedContainer}>
+                          <Text style={styles.appliedText}>✓</Text>
+                        </View>
+                      ) : discount.isGoldOnly ? (
+                        <View style={styles.goldOnlyContainer}>
+                          <Text style={styles.goldOnlyText}>👑</Text>
+                        </View>
+                      ) : !discount.isAvailable ? (
+                        <View style={styles.upgradeContainer}>
+                          <Text style={styles.upgradeText}>Non dispo</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.availableContainer}>
+                          <Text style={styles.availableText}>Appliquer</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
                   {/* Informations */}
@@ -184,39 +229,11 @@ export default function DiscountSection({
                     <Text style={styles.discountCondition}>{discount.condition}</Text>
                     
                     {/* Calcul dynamique des économies et prix */}
-                    {discount.isAvailable && discount.discount > 0 && (
+                    {discount.isAvailable && !discount.isGoldOnly && discount.discount > 0 && (
                       <View style={styles.savingsContainer}>
-                        <View style={styles.priceComparison}>
-                          <Text style={styles.originalPrice}>
-                            {formatAmount(cartTotal)}
-                          </Text>
-                          <Text style={styles.arrowText}>→</Text>
-                          <Text style={styles.discountedPrice}>
-                            {calculateDiscountedPrice(cartTotal, discount.discount)}
-                          </Text>
-                        </View>
                         <Text style={styles.savingsText}>
-                          Économie: {calculateSavings(discount.discount)}
+                          -{calculateSavings(discount.discount)}
                         </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Status */}
-                  <View style={styles.statusContainer}>
-                    {discount.isActive ? (
-                      <View style={styles.appliedContainer}>
-                        <Text style={styles.appliedText}>✓</Text>
-                      </View>
-                    ) : !discount.isAvailable && discount.requiresMinimum ? (
-                      <View style={styles.upgradeContainer}>
-                        <Text style={styles.upgradeText}>
-                          +{((discount.minimumAmount || 0) - cartTotal).toLocaleString()}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.availableContainer}>
-                        <Text style={styles.availableText}>Appliquer</Text>
                       </View>
                     )}
                   </View>
@@ -225,9 +242,9 @@ export default function DiscountSection({
             </TouchableOpacity>
           </Animated.View>
         ))}
-      </View>
+      </ScrollView>
 
-      {/* Résumé des économies totales */}
+      {/* Résumé des économies totales - plus compact */}
       {globalDiscountPercentage > 0 && (
         <View style={styles.totalSavingsContainer}>
           <LinearGradient
@@ -236,9 +253,9 @@ export default function DiscountSection({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Star size={14} color="#fff" />
+            <Star size={12} color="#fff" />
             <Text style={styles.totalSavingsText}>
-              Vous économisez {calculateSavings(globalDiscountPercentage)} !
+              Économie: {calculateSavings(globalDiscountPercentage)}
             </Text>
           </LinearGradient>
         </View>
@@ -249,34 +266,41 @@ export default function DiscountSection({
 
 const styles = StyleSheet.create({
   section: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
-    gap: 8,
+    marginBottom: 8,
+    gap: 6,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1F2937',
   },
+  discountScrollView: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
   discountGrid: {
+    flexDirection: 'row',
     gap: 12,
+    paddingRight: 16,
   },
   discountCardContainer: {
-    marginBottom: 8,
+    width: 280,
+    marginBottom: 4,
   },
   discountCard: {
-    borderRadius: 16,
+    borderRadius: 10,
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 2,
   },
   activeCard: {
     elevation: 8,
@@ -305,7 +329,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   iconContainer: {
-    marginBottom: 12,
+    marginBottom: 0,
   },
   cardContent: {
     gap: 4,
@@ -385,15 +409,22 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   cardMainContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     flex: 1,
     padding: 0,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 8,
   },
   statusContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 60,
+    marginTop: 0,
   },
   priceComparison: {
     flexDirection: 'row',
@@ -414,5 +445,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#fff',
     fontWeight: '600',
+  },
+  goldOnlyContainer: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  goldOnlyText: {
+    fontSize: 10,
+    textAlign: 'center',
   },
 });
