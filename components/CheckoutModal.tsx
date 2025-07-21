@@ -20,6 +20,7 @@ import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
 import PromoPopup from './PromoPopup';
 import GoldMembershipPromo from './GoldMembershipPromo';
+import DiscountSection from './DiscountSection';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -191,24 +192,18 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     }
   };
   
-  // Gestionnaire pour appliquer une remise Gold
-  const handleApplyGoldDiscount = (discountPercentage: number, checkMinimum = false) => {
-    // Vérifier si l'utilisateur est membre Gold
-    if (!user || user.membershipType !== 'gold') {
-      // Pour les membres Classic, afficher la nouvelle popup stylée
-      setTimeout(() => {
-        setShowGoldMembershipPromo(true);
-        // Ne pas fermer la modal de récapitulatif
-      }, 0);
-      return;
-    }
-    
-    if (checkMinimum && cartTotal <= 70) {
-      Alert.alert(
-        "Remise non disponible", 
-        "Cette remise nécessite un total de commande supérieur à 70 points."
-      );
-      return;
+  // Gestionnaire pour appliquer une remise (Gold et Classic)
+  const handleApplyDiscount = (discountPercentage: number, checkMinimum = false) => {
+    // Vérifier les conditions selon le type de membre
+    if (checkMinimum) {
+      const minimumRequired = user?.membershipType === 'gold' ? 80 : 70;
+      if (cartTotal <= minimumRequired) {
+        Alert.alert(
+          "Remise non disponible", 
+          `Cette remise nécessite un total de commande supérieur à ${minimumRequired} points.`
+        );
+        return;
+      }
     }
     
     setGlobalDiscountPercentage(discountPercentage);
@@ -219,13 +214,35 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     setDiscountedTotal(discounted);
     
     // Enregistrer la remise dans la base de données (simulation)
-    console.log(`Remise Gold appliquée: ${discountPercentage}% pour le membre Gold ${user?.id}`);
+    const membershipType = user?.membershipType || 'classic';
+    console.log(`Remise ${membershipType} appliquée: ${discountPercentage}% pour le membre ${user?.id}`);
     
     // Afficher une notification
     Alert.alert(
-      "Remise Gold appliquée",
-      `Une remise exclusive de ${discountPercentage}% a été appliquée à votre commande.`
+      "🎉 Remise appliquée !",
+      `Une remise de ${discountPercentage}% a été appliquée à votre commande.\n\nNouveau total: ${formatAmount(discounted)}`,
+      [{ text: "Super !", style: "default" }]
     );
+  };
+  
+  const formatAmount = (amount: number) => {
+    return selectedPayment === 'points' 
+      ? `${amount.toLocaleString()} pts`
+      : `${pointsToFcfa(amount).toLocaleString()} FCFA`;
+  };
+  
+  // Gestionnaire pour promouvoir Gold (ancienne fonction)
+  const handleApplyGoldDiscount = (discountPercentage: number, checkMinimum = false) => {
+    // Si l'utilisateur n'est pas Gold, montrer la promo
+    if (!user || user.membershipType !== 'gold') {
+      setTimeout(() => {
+        setShowGoldMembershipPromo(true);
+      }, 0);
+      return;
+    }
+    
+    // Si Gold, appliquer la remise directement
+    handleApplyDiscount(discountPercentage, checkMinimum);
   };
 
   return (
@@ -248,7 +265,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
           >
             <Animated.View 
               style={[
-                responsiveStyles.container, 
                 styles.container,
                 {
                   transform: [
@@ -257,6 +273,9 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   backgroundColor: '#FFF',
                   borderTopLeftRadius: 25,
                   borderTopRightRadius: 25,
+                  width: '100%',
+                  maxWidth: 400,
+                  maxHeight: '90%',
                 }
               ]}
             >
@@ -281,113 +300,15 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   </View>
                 </View>
 
-                {/* Zone de coupons */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Offres de réduction</Text>
-                  
-                  {/* Remise standard */}
-                  <TouchableOpacity 
-                    style={[styles.couponZone, globalDiscountPercentage === (user?.membershipType === 'gold' ? 10 : 5) ? styles.selectedCouponZone : {}]}
-                    onPress={() => {
-                      // Remise standard basique
-                      const discountPercentage = user?.membershipType === 'gold' ? 10 : 5;
-                      handleApplyGoldDiscount(discountPercentage, false);
-                    }}
-                  >
-                    <View style={styles.couponHeader}>
-                      <Ticket size={14} color={user?.membershipType === 'gold' ? "#FFD700" : "#FF6B6B"} />
-                      <Text style={styles.couponTitle}>
-                        {user?.membershipType === 'gold' ? "Remise Gold Standard (10%)" : "Remise Classique (5%)"}
-                      </Text>
-                    </View>
-                    <Text style={styles.couponDescription}>
-                      {user?.membershipType === 'gold' 
-                        ? "Remise exclusive pour tous les membres Gold"
-                        : "Remise standard pour tous les clients"}
-                    </Text>
-                    {!user || user.membershipType !== 'gold' ? (
-                      <Text style={styles.upgradeText}>Passer à Gold pour doubler votre remise </Text>
-                    ) : (
-                      <Text style={styles.appliedDiscount}>
-                        {globalDiscountPercentage === 10 ? "Remise de 10% appliquée" : "Cliquez pour appliquer"}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  
-                  {/* Remise commande importante */}
-                  <TouchableOpacity 
-                    style={[
-                      styles.couponZone, 
-                      { marginTop: 8 }, 
-                      globalDiscountPercentage === (user?.membershipType === 'gold' ? 15 : 7) ? styles.selectedCouponZone : {},
-                      cartTotal <= 100 ? styles.disabledCouponZone : {}
-                    ]}
-                    onPress={() => {
-                      // Remise pour grosses commandes
-                      if (cartTotal > 100) {
-                        const bigOrderDiscount = user?.membershipType === 'gold' ? 15 : 7;
-                        handleApplyGoldDiscount(bigOrderDiscount, false);
-                      } else {
-                        Alert.alert(
-                          "Remise non disponible", 
-                          "Cette remise nécessite un total de commande supérieur à 100 points."
-                        );
-                      }
-                    }}
-                  >
-                    <View style={styles.couponHeader}>
-                      <Percent size={14} color={cartTotal > 100 ? (user?.membershipType === 'gold' ? "#FFD700" : "#FF6B6B") : "#999"} />
-                      <Text style={[styles.couponTitle, cartTotal <= 100 ? {color: '#999'} : {}]}>
-                        {user?.membershipType === 'gold' ? "Remise Commande Importante (15%)" : "Remise Grande Commande (7%)"}
-                      </Text>
-                    </View>
-                    <Text style={[styles.couponDescription, cartTotal <= 100 ? {color: '#999'} : {}]}>
-                      Applicable sur les commandes de plus de 100 points
-                    </Text>
-                    {cartTotal > 100 ? (
-                      !user || user.membershipType !== 'gold' ? (
-                        <Text style={styles.upgradeText}>Passer à Gold pour plus que doubler votre remise </Text>
-                      ) : (
-                        <Text style={styles.appliedDiscount}>
-                          {globalDiscountPercentage === 15 ? "Remise de 15% appliquée" : "Cliquez pour appliquer"}
-                        </Text>
-                      )
-                    ) : (
-                      <Text style={styles.unavailableText}>
-                        Ajoutez {(100 - cartTotal).toLocaleString()} pts de plus à votre panier pour activer cette offre
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  
-                  {/* Remise première commande */}
-                  <TouchableOpacity 
-                    style={[styles.couponZone, { marginTop: 8 }, globalDiscountPercentage === 12 ? styles.selectedCouponZone : {}]}
-                    onPress={() => {
-                      // Vérifier si c'est la première commande (simulé ici)
-                      const isFirstOrder = Math.random() > 0.5; // Simulation
-                      
-                      if (isFirstOrder) {
-                        handleApplyGoldDiscount(12, false);
-                      } else {
-                        Alert.alert(
-                          "Remise non disponible", 
-                          "Cette offre est réservée à votre première commande."
-                        );
-                      }
-                    }}
-                  >
-                    <View style={styles.couponHeader}>
-                      <Text style={styles.couponEmoji}></Text>
-                      <Text style={styles.couponTitle}>Première Commande (12%)</Text>
-                    </View>
-                    <Text style={styles.couponDescription}>
-                      Remise exclusive pour votre première commande
-                    </Text>
-                    <Text style={styles.appliedDiscount}>
-                      {globalDiscountPercentage === 12 ? "Remise de 12% appliquée" : "Cliquez pour vérifier l'éligibilité"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Nouvelle zone de réductions stylée */}
+                <DiscountSection
+                  cartTotal={cartTotal}
+                  globalDiscountPercentage={globalDiscountPercentage}
+                  user={user}
+                  selectedPayment={selectedPayment}
+                  pointsToFcfa={pointsToFcfa}
+                  onApplyDiscount={handleApplyDiscount}
+                />
 
                 {/* Articles commandés */}
                 <View style={styles.section}>
@@ -508,16 +429,25 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   <View>
                     {globalDiscountPercentage > 0 && (
                       <Text style={styles.originalPrice}>
-                        {originalTotal.toLocaleString()} pts
+                        {selectedPayment === 'points' 
+                          ? `${originalTotal.toLocaleString()} pts`
+                          : `${pointsToFcfa(originalTotal).toLocaleString()} FCFA`
+                        }
                       </Text>
                     )}
                     <Text style={styles.totalAmount}>
-                      {(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts
+                      {selectedPayment === 'points' 
+                        ? `${(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts`
+                        : `${pointsToFcfa(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} FCFA`
+                      }
                     </Text>
                     {globalDiscountPercentage > 0 && (
                       <View style={styles.discountRow}>
                         <Text style={styles.discountText}>
-                          Économie: {(originalTotal - discountedTotal).toLocaleString()} pts
+                          Économie: {selectedPayment === 'points' 
+                            ? `${(originalTotal - discountedTotal).toLocaleString()} pts`
+                            : `${pointsToFcfa(originalTotal - discountedTotal).toLocaleString()} FCFA`
+                          }
                         </Text>
                       </View>
                     )}

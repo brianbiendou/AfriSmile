@@ -11,19 +11,22 @@ import {
 } from 'react-native';
 import { X, Crown, Percent, Gift, Star, Zap, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import GoldPurchaseSimulation from './GoldPurchaseSimulation';
 
 interface GoldMembershipPromoProps {
   visible: boolean;
   onClose: () => void;
   onSubscribe?: () => void;
+  onGoldUpgradeSuccess?: () => void;
 }
 
 const { height: screenHeight } = Dimensions.get('window');
 
-export default function GoldMembershipPromo({ visible, onClose, onSubscribe }: GoldMembershipPromoProps) {
+export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onGoldUpgradeSuccess }: GoldMembershipPromoProps) {
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const [showPurchaseSimulation, setShowPurchaseSimulation] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -137,110 +140,126 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe }: G
                 { translateY: slideAnim },
                 { scale: scaleAnim }
               ],
+              zIndex: 999999999,
+              elevation: 999999999,
             }
           ]}
         >
-          {/* Header avec gradient */}
-          <LinearGradient
-            colors={['#FFD700', '#FFA500', '#FF8C00']}
-            style={styles.header}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <X size={24} color="#000" />
-            </TouchableOpacity>
-            
-            <View style={styles.headerContent}>
-              <View style={styles.crownContainer}>
-                <Crown size={40} color="#000" fill="#FFD700" />
+          {/* Bouton de fermeture fixe */}
+          <TouchableOpacity style={styles.fixedCloseButton} onPress={handleClose}>
+            <X size={24} color="#FFF" />
+          </TouchableOpacity>
+
+          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Header avec gradient qui défile */}
+            <LinearGradient
+              colors={['#FFD700', '#FFA500', '#FF8C00']}
+              style={styles.header}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.headerContent}>
+                <View style={styles.crownContainer}>
+                  <Crown size={40} color="#000" fill="#FFD700" />
+                </View>
+                <Text style={styles.title}>Devenez Membre Gold</Text>
+                <Text style={styles.subtitle}>Débloquez toutes les réductions premium</Text>
               </View>
-              <Text style={styles.title}>Devenez Membre Gold</Text>
-              <Text style={styles.subtitle}>Débloquez toutes les réductions premium</Text>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Section des réductions disponibles */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🎯 Vos Réductions Gold</Text>
-              {reductions.map((reduction, index) => (
-                <View key={index} style={styles.reductionCard}>
-                  <View style={styles.reductionLeft}>
-                    <View style={styles.discountBadge}>
-                      <Text style={styles.discountText}>{reduction.discount}</Text>
+            {/* Contenu principal */}
+            <View style={styles.content}>
+              {/* Section des réductions disponibles */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🎯 Vos Réductions Gold</Text>
+                {reductions.map((reduction, index) => (
+                  <View key={index} style={styles.reductionCard}>
+                    <View style={styles.reductionLeft}>
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountText}>{reduction.discount}</Text>
+                      </View>
+                      <View>
+                        <Text style={styles.reductionType}>{reduction.type}</Text>
+                        <Text style={styles.reductionCondition}>{reduction.condition}</Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={styles.reductionType}>{reduction.type}</Text>
-                      <Text style={styles.reductionCondition}>{reduction.condition}</Text>
+                    <View style={styles.checkContainer}>
+                      <Check size={20} color="#00B14F" />
                     </View>
                   </View>
-                  <View style={styles.checkContainer}>
-                    <Check size={20} color="#00B14F" />
-                  </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
 
-            {/* Section des avantages */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✨ Avantages Exclusifs</Text>
-              {benefits.map((benefit, index) => (
-                <View key={index} style={styles.benefitCard}>
-                  <View style={styles.benefitIcon}>
-                    {benefit.icon}
+              {/* Section des avantages */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>✨ Avantages Exclusifs</Text>
+                {benefits.map((benefit, index) => (
+                  <View key={index} style={styles.benefitCard}>
+                    <View style={styles.benefitIcon}>
+                      {benefit.icon}
+                    </View>
+                    <View style={styles.benefitContent}>
+                      <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                      <Text style={styles.benefitDescription}>{benefit.description}</Text>
+                    </View>
+                    <View style={styles.benefitHighlight}>
+                      <Text style={styles.highlightText}>{benefit.highlight}</Text>
+                    </View>
                   </View>
-                  <View style={styles.benefitContent}>
-                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                    <Text style={styles.benefitDescription}>{benefit.description}</Text>
-                  </View>
-                  <View style={styles.benefitHighlight}>
-                    <Text style={styles.highlightText}>{benefit.highlight}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
 
-            {/* Prix et appel à l'action */}
-            <View style={styles.pricingSection}>
-              <View style={styles.priceCard}>
-                <Text style={styles.priceLabel}>Abonnement mensuel</Text>
-                <View style={styles.priceRow}>
-                  <Text style={styles.oldPrice}>2,500 FCFA</Text>
-                  <Text style={styles.newPrice}>1,500 FCFA</Text>
+              {/* Prix et appel à l'action */}
+              <View style={styles.pricingSection}>
+                <View style={styles.priceCard}>
+                  <Text style={styles.priceLabel}>Abonnement mensuel</Text>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.oldPrice}>2,500 FCFA</Text>
+                    <Text style={styles.newPrice}>1,500 FCFA</Text>
+                  </View>
+                  <Text style={styles.savings}>Économisez 1,000 FCFA</Text>
                 </View>
-                <Text style={styles.savings}>Économisez 1,000 FCFA</Text>
+              </View>
+
+              {/* Footer avec bouton d'action */}
+              <View style={styles.footer}>
+                <TouchableOpacity 
+                  style={styles.subscribeButton}
+                  onPress={() => {
+                    setShowPurchaseSimulation(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#FFD700', '#FFA500']}
+                    style={styles.buttonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Crown size={20} color="#000" />
+                    <Text style={styles.buttonText}>Devenir Membre Gold</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
+                  <Text style={styles.laterText}>Plus tard</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
-
-          {/* Footer avec bouton d'action */}
-          <View style={styles.footer}>
-            <TouchableOpacity 
-              style={styles.subscribeButton}
-              onPress={() => {
-                onSubscribe?.();
-                handleClose();
-              }}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FFD700', '#FFA500']}
-                style={styles.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Crown size={20} color="#000" />
-                <Text style={styles.buttonText}>Devenir Membre Gold</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
-              <Text style={styles.laterText}>Plus tard</Text>
-            </TouchableOpacity>
-          </View>
         </Animated.View>
       </Animated.View>
+      
+      {/* Simulation d'achat Gold */}
+      <GoldPurchaseSimulation
+        visible={showPurchaseSimulation}
+        onClose={() => setShowPurchaseSimulation(false)}
+        onSuccess={() => {
+          setShowPurchaseSimulation(false);
+          onGoldUpgradeSuccess?.();
+          handleClose();
+        }}
+      />
     </Modal>
   );
 }
@@ -248,10 +267,15 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe }: G
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'flex-end',
-    zIndex: 999999,
-    elevation: 999999,
+    zIndex: 999999999,
+    elevation: 999999999,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   container: {
     backgroundColor: '#fff',
@@ -264,8 +288,20 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 20,
   },
+  fixedCloseButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 1000,
+  },
+  scrollContent: {
+    flex: 1,
+  },
   header: {
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 25,
     paddingHorizontal: 20,
     borderTopLeftRadius: 25,
@@ -301,8 +337,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
+    backgroundColor: '#fff',
   },
   section: {
     marginVertical: 20,
