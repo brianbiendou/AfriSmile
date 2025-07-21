@@ -498,14 +498,24 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       />
       
       {/* Nouvelle popup Gold stylée pour les membres Classic */}
-      <GoldMembershipPromo 
-        visible={showGoldMembershipPromo} 
-        onClose={() => setShowGoldMembershipPromo(false)}
-        onSubscribe={() => {
-          // Logique d'abonnement à implémenter
-          Alert.alert("Abonnement", "Redirection vers le processus d'abonnement Gold");
-        }}
-      />
+      {showGoldMembershipPromo && (
+        <GoldMembershipPromo 
+          visible={true}
+          onClose={() => setShowGoldMembershipPromo(false)}
+          onSubscribe={() => {
+            // Logique d'abonnement à implémenter
+            Alert.alert("Abonnement", "Redirection vers le processus d'abonnement Gold");
+          }}
+          onGoldUpgradeSuccess={() => {
+            // Mise à jour UI après succès
+            setShowGoldMembershipPromo(false);
+            // Refresh discounts if needed
+            if (user?.membershipType === 'gold') {
+              handleApplyDiscount(10, false); // Apply default Gold discount
+            }
+          }}
+        />
+      )}
     </>
   );
 }

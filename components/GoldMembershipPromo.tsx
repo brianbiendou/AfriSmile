@@ -123,12 +123,20 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onG
       transparent={true}
       animationType="none"
       onRequestClose={handleClose}
+      statusBarTranslucent={true}
+      presentationStyle="overFullScreen"
     >
       <Animated.View 
         style={[
           styles.overlay,
           {
             opacity: fadeAnim,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 9999,
           }
         ]}
       >
@@ -140,8 +148,9 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onG
                 { translateY: slideAnim },
                 { scale: scaleAnim }
               ],
-              zIndex: 999999999,
-              elevation: 999999999,
+              zIndex: 9999,
+              elevation: 9999,
+              position: 'relative',
             }
           ]}
         >
@@ -276,26 +285,33 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   container: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     maxHeight: '85%',
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 20,
-    elevation: 20,
+    elevation: 25,
   },
   fixedCloseButton: {
     position: 'absolute',
     top: 15,
     right: 15,
+    width: 40,
+    height: 40,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99999,
     padding: 8,
-    zIndex: 1000,
   },
   scrollContent: {
     flex: 1,
