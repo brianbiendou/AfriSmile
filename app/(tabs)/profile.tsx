@@ -21,7 +21,6 @@ import CartIcon from '@/components/CartIcon';
 import CartModal from '@/components/CartModal';
 import CheckoutModal from '@/components/CheckoutModal';
 import DatabaseTestTool from '@/components/DatabaseTestTool';
-import PointsTestScreen from '@/components/PointsTestScreen';
 import { pointsToFcfa, formatPointsWithFcfa } from '@/utils/pointsConversion';
 import { formatPoints } from '@/utils/pointsConversion';
 
@@ -34,7 +33,6 @@ export default function ProfileScreen() {
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [simpleWalletModalVisible, setSimpleWalletModalVisible] = useState(false);
   const [databaseTestVisible, setDatabaseTestVisible] = useState(false);
-  const [pointsTestVisible, setPointsTestVisible] = useState(false);
 
   const { logout, user: authUser } = useAuth();
   const { cartCount } = useCart();
@@ -97,13 +95,6 @@ export default function ProfileScreen() {
       subtitle: 'Vérifier la connexion et les données',
       onPress: () => setDatabaseTestVisible(true),
       color: '#8B5CF6',
-    },
-    {
-      icon: User,
-      title: 'Test Points x10',
-      subtitle: 'Tester le nouveau système de points',
-      onPress: () => setPointsTestVisible(true),
-      color: '#FF9500',
     },
   ];
 

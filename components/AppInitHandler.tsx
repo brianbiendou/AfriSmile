@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import storage from '@/utils/storage';
-import PromoPopup from './PromoPopup';
 import GoldMembershipPromo from './GoldMembershipPromo';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
@@ -85,19 +84,15 @@ export default function AppInitHandler() {
 
   return (
     <>
-      {/* Affichage conditionnel selon le type de membre */}
-      {user?.membershipType === 'classic' ? (
-        <GoldMembershipPromo 
-          visible={showPromoPopup} 
-          onClose={handleClosePromoPopup}
-          onSubscribe={() => {
-            Alert.alert("Abonnement Gold", "Redirection vers le processus d'abonnement Gold");
-            handleClosePromoPopup();
-          }}
-        />
-      ) : (
-        <PromoPopup visible={showPromoPopup} onClose={handleClosePromoPopup} />
-      )}
+      {/* Affichage de la promotion Gold pour tous les membres */}
+      <GoldMembershipPromo 
+        visible={showPromoPopup} 
+        onClose={handleClosePromoPopup}
+        onSubscribe={() => {
+          Alert.alert("Abonnement Gold", "Redirection vers le processus d'abonnement Gold");
+          handleClosePromoPopup();
+        }}
+      />
     </>
   );
 }

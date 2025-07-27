@@ -18,7 +18,6 @@ import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import CouponModal from './CouponModal';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
-import PromoPopup from './PromoPopup';
 import GoldMembershipPromo from './GoldMembershipPromo';
 import DiscountSection from './DiscountSection';
 
@@ -31,8 +30,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const { cartItems, cartTotal, clearCart, applyCoupon, updateQuantity } = useCart();
   const { user, updateUserPoints } = useAuth();
   const responsiveStyles = useResponsiveModalStyles();
-  // État pour contrôler la visibilité de la popup Gold (déplacé en haut)
-  const [showGoldPopup, setShowGoldPopup] = useState(false);
+  // État pour contrôler la visibilité de la popup Gold
   const [showGoldMembershipPromo, setShowGoldMembershipPromo] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<'points' | 'mtn' | 'orange' | 'moov'>('points');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -489,12 +487,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
         totalPoints={cartTotal}
         providerId={selectedCartItemId ? 
           cartItems.find(item => item.id === selectedCartItemId)?.providerId : undefined}
-      />
-      
-      {/* Popup Gold - placée à la fin pour s'afficher au premier plan */}
-      <PromoPopup 
-        visible={showGoldPopup} 
-        onClose={() => setShowGoldPopup(false)}
       />
       
       {/* Nouvelle popup Gold stylée pour les membres Classic */}
