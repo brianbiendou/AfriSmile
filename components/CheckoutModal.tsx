@@ -416,7 +416,10 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.radioOuter}>
+                    <View style={[
+                      styles.radioOuter,
+                      selectedPayment === 'points' && styles.radioSelected
+                    ]}>
                       {selectedPayment === 'points' && (
                         <View style={styles.radioInner} />
                       )}
@@ -443,7 +446,10 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.radioOuter}>
+                      <View style={[
+                        styles.radioOuter,
+                        selectedPayment === method.id && styles.radioSelected
+                      ]}>
                         {selectedPayment === method.id && (
                           <View style={styles.radioInner} />
                         )}
@@ -637,9 +643,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
     borderRadius: 12,
     padding: 16,
+    paddingRight: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#EEE',
+    borderColor: '#E0E0E0',
   },
   selectedMethod: {
     borderColor: '#00B14F',
@@ -648,6 +655,8 @@ const styles = StyleSheet.create({
   methodContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: -10,
   },
   methodIcon: {
     width: 40,
@@ -661,32 +670,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   methodName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   pointsBalance: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
   },
   methodFee: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#E53E3E',
   },
   radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: '#CCC',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  radioSelected: {
+    borderColor: '#00B14F',
+  },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#00B14F',
   },
   footer: {
