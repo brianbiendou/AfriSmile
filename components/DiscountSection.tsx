@@ -214,13 +214,6 @@ export default function DiscountSection({
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                {/* Badge de réduction */}
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountPercentage}>
-                    -{discount.discount}%
-                  </Text>
-                </View>
-
                 {/* Contenu principal */}
                 <View style={styles.cardMainContent}>
                   {/* Header avec icône et status */}
@@ -253,7 +246,10 @@ export default function DiscountSection({
 
                   {/* Informations */}
                   <View style={styles.cardContent}>
-                    <Text style={styles.discountType}>{discount.type}</Text>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.discountType}>{discount.type}</Text>
+                      <Text style={styles.discountPercentage}>-{discount.discount}%</Text>
+                    </View>
                     <Text style={styles.discountCondition}>{discount.condition}</Text>
                     
                     {/* Calcul dynamique des économies et prix */}
@@ -318,11 +314,11 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   discountCardContainer: {
-    width: 280,
+    width: 220,
     marginBottom: 4,
   },
   discountCard: {
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
@@ -339,22 +335,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   cardGradient: {
-    padding: 16,
+    padding: 12,
     position: 'relative',
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  discountPercentage: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1F2937',
   },
   iconContainer: {
     marginBottom: 0,
@@ -362,59 +344,78 @@ const styles = StyleSheet.create({
   cardContent: {
     gap: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+    width: '100%',
+  },
   discountType: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 2,
+    flex: 1,
+    marginRight: 12,
+  },
+  discountPercentage: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 40,
+    textAlign: 'center',
   },
   discountCondition: {
-    fontSize: 12,
+    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   savingsContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 8,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    marginBottom: 6,
   },
   savingsText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#fff',
   },
   appliedContainer: {
     backgroundColor: 'rgba(34, 197, 94, 0.2)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   appliedText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#fff',
   },
   upgradeContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   upgradeText: {
-    fontSize: 11,
+    fontSize: 9,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
   availableContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   availableText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#fff',
     textAlign: 'center',
     fontWeight: '500',
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statusContainer: {
     alignItems: 'center',
