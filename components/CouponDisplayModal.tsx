@@ -126,14 +126,19 @@ export default function CouponDisplayModal({ visible, onClose }: CouponDisplayMo
           style={[
             styles.container,
             {
+              width: '95%',  // Assurer que la largeur est suffisante sur mobile
               maxWidth: responsiveStyles.container.maxWidth,
+              maxHeight: '90%',  // Limiter la hauteur pour les petits écrans
               borderRadius: responsiveStyles.container.borderRadius,
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
           onStartShouldSetResponder={() => true}
-          onResponderGrant={(e) => e.stopPropagation()}
+          onResponderGrant={(e) => {
+            e.stopPropagation();
+            return true; // Important pour la capture des événements sur certains appareils
+          }}
         >
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Coupons disponibles</Text>
@@ -203,12 +208,18 @@ export default function CouponDisplayModal({ visible, onClose }: CouponDisplayMo
 
 const styles = StyleSheet.create({
   container: {
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
+    width: '95%',
+    maxWidth: 420,
+    maxHeight: '85%',
     backgroundColor: '#FFF',
     borderRadius: 16,
     overflow: 'hidden',
+    // Ajouter des ombres pour améliorer la visibilité sur fond clair
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',

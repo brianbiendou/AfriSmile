@@ -6,7 +6,8 @@ import {
   Image, 
   TouchableOpacity, 
   TextInput,
-  Dimensions 
+  Dimensions,
+  Alert
 } from 'react-native';
 import { Search, MapPin, Star, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
@@ -248,8 +249,28 @@ export default function HomeScreen() {
   }, []);
 
   const handleProviderPress = (provider: ProviderCompat) => {
-    setSelectedProvider(provider);
-    setDetailModalVisible(true);
+    try {
+      // Vérification de validité du provider
+      if (!provider || !provider.id) {
+        console.error('Provider invalide:', provider);
+        Alert.alert('Erreur', 'Informations du prestataire invalides. Veuillez réessayer.');
+        return;
+      }
+      
+      console.log('Provider sélectionné:', provider.id, provider.name);
+      
+      // On défini d'abord le provider
+      setSelectedProvider(provider);
+      
+      // Puis on ouvre le modal avec un petit délai pour éviter les problèmes d'animation
+      setTimeout(() => {
+        // Vérification supplémentaire avant d'ouvrir le modal
+        setDetailModalVisible(true);
+      }, 200);
+    } catch (error) {
+      console.error('Erreur lors de la sélection du prestataire:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ouverture du prestataire. Veuillez réessayer.');
+    }
   };
 
   const categories = [
@@ -397,12 +418,31 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <ProviderDetailModal
-        visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        provider={selectedProvider}
-        userPoints={userPoints}
-      />
+      {/* Afficher le modal seulement si un provider valide est sélectionné */}
+      {selectedProvider && selectedProvider.id && detailModalVisible && (
+        <ProviderDetailModal
+          visible={detailModalVisible} 
+          onClose={() => {
+            try {
+              // Fermer le modal d'abord
+              setDetailModalVisible(false);
+              
+              // Augmenter le délai pour s'assurer que les animations sont terminées
+              setTimeout(() => {
+                // Réinitialiser le provider sélectionné après fermeture complète
+                setSelectedProvider(null);
+              }, 500);
+            } catch (error) {
+              console.error('Erreur lors de la fermeture du modal:', error);
+              // Nettoyage en cas d'erreur
+              setDetailModalVisible(false);
+              setSelectedProvider(null);
+            }
+          }}
+          provider={selectedProvider}
+          userPoints={userPoints}
+        />
+      )}
 
       <CartModal
         visible={cartModalVisible}
@@ -431,7 +471,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 45,
+    paddingTop: 5, // Réduit de 45 à 5 pour réduire l'espace avec le sélecteur d'application
     paddingHorizontal: 20,
     paddingBottom: 10,
     position: 'sticky',
@@ -442,7 +482,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
-    marginBottom: 10,
+    marginBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec la zone de recherche
   },
   locationContainer: {
     flexDirection: 'row',
@@ -472,7 +512,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10, // Réduit de 20 à 10 pour réduire l'espace avec la zone de recherche
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
@@ -483,7 +523,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingVertical: 8, // Réduit de 12 à 8 pour réduire la hauteur
   },
   searchInput: {
     flex: 1,

@@ -24,41 +24,68 @@ interface CartModalProps {
 
 export default function CartModal({ visible: propsVisible, onClose, onCheckout }: CartModalProps) {
   const [visible, setVisible] = useState(propsVisible);
+  const [isAnimating, setIsAnimating] = useState(false);
   const { cartItems, cartTotal, updateQuantity, removeFromCart } = useCart();
   const { globalDiscountPercentage } = useCoupon();
   const responsiveStyles = useResponsiveModalStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const [showCouponModal, setShowCouponModal] = useState(false);
   
   // Animation pour le texte promotionnel
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   
-  // Animation de pulsation pour le texte promotionnel
+  // Animation de pulsation pour le texte promotionnel - sécurisée et optimisée
   useEffect(() => {
-    if (visible) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
+    // Arrêter l'animation précédente si elle existe
+    if (pulseAnimationRef.current) {
+      pulseAnimationRef.current.stop();
+      pulseAnimationRef.current = null;
     }
-  }, [visible]);
+
+    // Délai pour éviter les conflits avec useInsertionEffect
+    const timeoutId = setTimeout(() => {
+      if (visible && !isAnimating) {
+        try {
+          pulseAnimationRef.current = Animated.loop(
+            Animated.sequence([
+              Animated.timing(pulseAnim, {
+                toValue: 1.1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+            ])
+          );
+          pulseAnimationRef.current.start();
+        } catch (error) {
+          console.warn('Erreur animation pulse:', error);
+          pulseAnim.setValue(1);
+        }
+      } else {
+        pulseAnim.setValue(1);
+      }
+    }, 100); // Petit délai pour éviter les conflits
+
+    // Cleanup
+    return () => {
+      clearTimeout(timeoutId);
+      if (pulseAnimationRef.current) {
+        pulseAnimationRef.current.stop();
+        pulseAnimationRef.current = null;
+      }
+    };
+  }, [visible, isAnimating]);
 
   // Écouter les changements de visible depuis les props
   useEffect(() => {
-    setVisible(propsVisible);
+    if (propsVisible !== visible) {
+      setVisible(propsVisible);
+    }
   }, [propsVisible]);
   
   // Écouter l'événement d'ouverture du panier
@@ -71,42 +98,75 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
     };
   }, []);
 
+  // Animation principale du modal - sécurisée avec délai
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
+    if (visible && !isAnimating) {
+      setIsAnimating(true);
+      
+      // Délai pour éviter les conflits avec useInsertionEffect
+      const timeoutId = setTimeout(() => {
+        try {
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            setIsAnimating(false);
+          });
+        } catch (error) {
+          console.warn('Erreur animation ouverture:', error);
+          fadeAnim.setValue(1);
+          slideAnim.setValue(0);
+          setIsAnimating(false);
+        }
+      }, 50); // Petit délai pour éviter les conflits
+
+      return () => clearTimeout(timeoutId);
+    } else if (!visible) {
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
+      setIsAnimating(false);
     }
   }, [visible]);
 
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 50,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setVisible(false);
-      onClose();
-    });
+    if (isAnimating) return; // Éviter les animations concurrentes
+    
+    setIsAnimating(true);
+    
+    // Délai pour éviter les conflits avec useInsertionEffect
+    const timeoutId = setTimeout(() => {
+      try {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 50,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setVisible(false);
+          setIsAnimating(false);
+          onClose();
+        });
+      } catch (error) {
+        console.warn('Erreur animation fermeture:', error);
+        setVisible(false);
+        setIsAnimating(false);
+        onClose();
+      }
+    }, 10); // Très petit délai pour éviter les conflits
   };
 
   const handleCheckout = () => {
@@ -295,11 +355,7 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
             </View>
           </View>
           
-          {/* Modal de coupons */}
-          <CouponDisplayModal
-            visible={showCouponModal}
-            onClose={() => setShowCouponModal(false)}
-          />
+          {/* Modal de coupons supprimé - remplacé par le système Gold */}
         </Animated.View>
       </View>
     </Modal>

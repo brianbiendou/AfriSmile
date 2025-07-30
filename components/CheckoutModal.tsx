@@ -15,11 +15,11 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { pointsToFcfa, fcfaToPoints, generateMobileMoneyFees } from '@/utils/pointsConversion';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
-import CouponModal from './CouponModal';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
 import GoldMembershipPromo from './GoldMembershipPromo';
 import DiscountSection from './DiscountSection';
+import { useGold } from '@/contexts/GoldContext';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -29,12 +29,16 @@ interface CheckoutModalProps {
 export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) {
   const { cartItems, cartTotal, clearCart, applyCoupon, updateQuantity } = useCart();
   const { user, updateUserPoints } = useAuth();
+  const { triggerGoldUpgradeModal, checkMembershipStatus, membership } = useGold();
   const responsiveStyles = useResponsiveModalStyles();
-  // État pour contrôler la visibilité de la popup Gold
-  const [showGoldMembershipPromo, setShowGoldMembershipPromo] = useState(false);
+  // DEBUG: Log styles dynamiques
+  console.log('responsiveStyles.header', responsiveStyles.header);
+  console.log('responsiveStyles.closeButton', responsiveStyles.closeButton);
+  console.log('responsiveStyles.title', responsiveStyles.title);
+  console.log('responsiveStyles.content', responsiveStyles.content);
+  // État pour contrôler les animations et la logique de paiement
   const [selectedPayment, setSelectedPayment] = useState<'points' | 'mtn' | 'orange' | 'moov'>('points');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showCouponModal, setShowCouponModal] = useState(false);
   const [selectedCartItemId, setSelectedCartItemId] = useState<string | null>(null);
   const [showCouponAnimation, setShowCouponAnimation] = useState(false);
   const [animatedCouponData, setAnimatedCouponData] = useState<{ code: string, discount: number } | null>(null);
@@ -61,23 +65,43 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     }
   }, [cartTotal, globalDiscountPercentage]);
 
+  // Debug: Afficher le statut Gold à chaque ouverture du modal
+  useEffect(() => {
+    if (visible) {
+      const isGold = checkMembershipStatus();
+      console.log('🛒 CheckoutModal ouvert - Statut Gold:', isGold ? 'ACTIF ✅' : 'INACTIF ❌');
+      console.log('🛒 Détails membership:', membership);
+    }
+  }, [visible, checkMembershipStatus, membership]);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Délai pour éviter les conflits avec useInsertionEffect
+      const timeoutId = setTimeout(() => {
+        try {
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        } catch (error) {
+          console.warn('Erreur animation CheckoutModal:', error);
+          fadeAnim.setValue(1);
+          slideAnim.setValue(0);
+        }
+      }, 50);
+
+      return () => clearTimeout(timeoutId);
     } else {
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
@@ -87,21 +111,28 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const handleClose = () => {
     if (isProcessing) return;
     
-    // Version simplifiée pour éviter les problèmes de référence
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 50,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-    });
+    // Délai pour éviter les conflits avec useInsertionEffect
+    const timeoutId = setTimeout(() => {
+      try {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 50,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          onClose();
+        });
+      } catch (error) {
+        console.warn('Erreur animation fermeture CheckoutModal:', error);
+        onClose();
+      }
+    }, 10);
   };
 
   const handlePayment = () => {
@@ -175,7 +206,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     if (selectedCartItemId) {
       applyCoupon(selectedCartItemId, coupon.code, coupon.discount);
       setSelectedCartItemId(null);
-      setShowCouponModal(false);
       
       // Déclencher l'animation
       setAnimatedCouponData({
@@ -229,13 +259,11 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       : `${pointsToFcfa(amount).toLocaleString()} FCFA`;
   };
   
-  // Gestionnaire pour promouvoir Gold (ancienne fonction)
+  // Gestionnaire pour promouvoir Gold - NOUVEAU SYSTÈME
   const handleApplyGoldDiscount = (discountPercentage: number, checkMinimum = false) => {
-    // Si l'utilisateur n'est pas Gold, montrer la promo
-    if (!user || user.membershipType !== 'gold') {
-      setTimeout(() => {
-        setShowGoldMembershipPromo(true);
-      }, 0);
+    // Si l'utilisateur n'est pas Gold, déclencher le popup Gold
+    if (!checkMembershipStatus()) {
+      triggerGoldUpgradeModal();
       return;
     }
     
@@ -307,7 +335,9 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   selectedPayment={selectedPayment}
                   pointsToFcfa={pointsToFcfa}
                   onApplyDiscount={handleApplyDiscount}
-                  onShowGoldPromo={() => setShowGoldMembershipPromo(true)}
+                  onShowGoldPromo={triggerGoldUpgradeModal}
+                  isGoldMember={checkMembershipStatus()} // Passer le vrai statut Gold
+                  goldMembership={membership} // Passer les détails de l'abonnement
                 />
 
                 {/* Articles commandés */}
@@ -479,35 +509,9 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
         discount={animatedCouponData?.discount}
       />
 
-      {/* Modal de sélection de coupon */}
-      <CouponModal 
-        visible={showCouponModal}
-        onClose={() => setShowCouponModal(false)}
-        onApplyCoupon={handleApplyCoupon}
-        totalPoints={cartTotal}
-        providerId={selectedCartItemId ? 
-          cartItems.find(item => item.id === selectedCartItemId)?.providerId : undefined}
-      />
+      {/* Modal de sélection de coupon supprimé - remplacé par le système Gold global */}
       
-      {/* Nouvelle popup Gold stylée pour les membres Classic */}
-      {showGoldMembershipPromo && (
-        <GoldMembershipPromo 
-          visible={true}
-          onClose={() => setShowGoldMembershipPromo(false)}
-          onSubscribe={() => {
-            // Logique d'abonnement à implémenter
-            Alert.alert("Abonnement", "Redirection vers le processus d'abonnement Gold");
-          }}
-          onGoldUpgradeSuccess={() => {
-            // Mise à jour UI après succès
-            setShowGoldMembershipPromo(false);
-            // Refresh discounts if needed
-            if (user?.membershipType === 'gold') {
-              handleApplyDiscount(10, false); // Apply default Gold discount
-            }
-          }}
-        />
-      )}
+      {/* Le popup Gold est maintenant géré globalement par GoldMembershipHandler */}
     </>
   );
 }

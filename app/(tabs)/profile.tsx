@@ -12,6 +12,7 @@ import { Database } from 'lucide-react-native';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useGold } from '@/contexts/GoldContext'; // Importer le context Gold
 import QRCodeModal from '@/components/QRCodeModal';
 import WalletModal from '@/components/WalletModal';
 import RewardsModal from '@/components/RewardsModal';
@@ -36,6 +37,10 @@ export default function ProfileScreen() {
 
   const { logout, user: authUser } = useAuth();
   const { cartCount } = useCart();
+  const { checkMembershipStatus, membership } = useGold(); // Utiliser le context Gold
+
+  // Vérifier le vrai statut Gold
+  const isGoldMember = checkMembershipStatus();
 
   // Données utilisateur dynamiques basées sur l'utilisateur connecté
   const user = {
@@ -45,7 +50,7 @@ export default function ProfileScreen() {
     avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg',
     points: authUser?.points || 0,
     balance: pointsToFcfa(authUser?.points || 0),
-    membershipType: authUser?.membershipType || 'classic',
+    membershipType: isGoldMember ? 'gold' : 'classic', // Utiliser le vrai statut Gold
     totalSavings: Math.floor((authUser?.points || 0) * 0.8), // Estimation des économies
     ordersCount: 8, // À récupérer depuis la base de données
     completionPercentage: 75,
@@ -290,9 +295,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 45,
+    paddingTop: 5, // Réduit de 45 à 5 pour réduire l'espace avec le sélecteur d'application
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -301,7 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
-    marginBottom: 10,
+    marginBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
   },
   locationContainer: {
     flexDirection: 'row',
@@ -331,8 +336,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 10, // Réduit de 20 à 10 pour réduire l'espace avec le header
+    paddingBottom: 5, // Réduit de 10 à 5 pour réduire l'espace
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
   userCard: {
     position: 'relative',
     backgroundColor: '#F4E4BC', // Or clair et lumineux
-    margin: 20,
+    margin: 15, // Réduit de 20 à 15 pour réduire l'espace
     padding: 20,
     borderRadius: 16,
     flexDirection: 'row',

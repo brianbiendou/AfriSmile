@@ -12,7 +12,7 @@ import {
 import { X, Star, MapPin, ShoppingBag, Plus } from 'lucide-react-native';
 import { Clock, Percent } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { type ProviderCompat } from '@/data/providers';
 import { useCart } from '@/contexts/CartContext';
 
@@ -97,51 +97,91 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   const scrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible) {
+    if (visible && provider) {
       setShowLoading(true);
-      // Animation améliorée avec léger rebond
-      Animated.sequence([
+      
+      // Timeout de sécurité pour s'assurer que le contenu s'affiche
+      const safetyTimeout = setTimeout(() => {
+        setShowLoading(false);
+      }, 1000); // 1 seconde maximum pour le loading
+      
+      // Création d'une animation sécurisée avec vérifications
+      try {
+        const sequence = Animated.sequence([
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnim, {
+              toValue: 1.02, // Réduire l'effet de rebond pour éviter les problèmes
+              duration: 250,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]);
+        
+        // Démarrage sécurisé de l'animation
+        sequence.start(() => {
+          // S'assurer que le loading se termine après l'animation
+          clearTimeout(safetyTimeout);
+          setTimeout(() => {
+            setShowLoading(false);
+          }, 100);
+        });
+      } catch (error) {
+        console.error('Erreur d\'animation (ouverture):', error);
+        // S'assurer que le loading se termine même en cas d'erreur
+        clearTimeout(safetyTimeout);
+        setShowLoading(false);
+      }
+      
+      // Nettoyer le timeout si le composant se démonte
+      return () => {
+        clearTimeout(safetyTimeout);
+      };
+    } else {
+      // Animation de fermeture plus douce
+      try {
         Animated.parallel([
           Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 300,
+            toValue: 0,
+            duration: 200,
             useNativeDriver: true,
           }),
           Animated.timing(scaleAnim, {
-            toValue: 1.05, // Légèrement plus grand pour l'effet de rebond
-            duration: 250,
+            toValue: 0.95,
+            duration: 200,
             useNativeDriver: true,
           }),
-        ]),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // Animation de fermeture plus douce
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        fadeAnim.setValue(0);
-        scaleAnim.setValue(0.9);
-        scrollY.setValue(0);
+        ]).start(() => {
+          // Réinitialiser les valeurs d'animation de manière sécurisée
+          try {
+            fadeAnim.setValue(0);
+            scaleAnim.setValue(0.9);
+            scrollY.setValue(0);
+          } catch (animError) {
+            console.error('Erreur lors de la réinitialisation des animations:', animError);
+          }
+          
+          setShowLoading(false);
+          setShowMenu(false);
+          setShowUnsoldProducts(false);
+        });
+      } catch (error) {
+        console.error('Erreur d\'animation (fermeture):', error);
         setShowLoading(false);
         setShowMenu(false);
         setShowUnsoldProducts(false);
-      });
+      }
     }
-  }, [visible]);
+  }, [visible, provider]);
 
   const handleLoadingComplete = () => {
     setShowLoading(false);
@@ -235,37 +275,74 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
 
   const handleClose = () => {
     // Animation de fermeture avec effet de rétrécissement
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 0.9,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowMenu(false);
-      setShowCustomization(false);
-      setShowUnsoldProducts(false);
-      setSelectedProduct(null);
-      scrollY.setValue(0);
+    try {
+      const closeAnimation = Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]);
+      
+      closeAnimation.start(() => {
+        // Réinitialisation des états
+        setShowMenu(false);
+        setShowCustomization(false);
+        setShowUnsoldProducts(false);
+        setSelectedProduct(null);
+        
+        // Réinitialisation des animations de manière sécurisée
+        try {
+          scrollY.setValue(0);
+        } catch (animError) {
+          console.error('Erreur lors de la réinitialisation de scrollY:', animError);
+        }
+        
+        // Fermer le modal
+        onClose();
+      });
+    } catch (error) {
+      console.error('Erreur lors de la fermeture du modal:', error);
+      // Fermer le modal même en cas d'erreur
       onClose();
-    });
+    }
   };
 
   const handleAddItem = (item: any) => {
     Alert.alert('Ajouté', `${item.name} ajouté au panier`);
   };
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
+  // Création de handleScroll de manière plus sécurisée
+  const handleScroll = useCallback(
+    (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+      try {
+        const { contentOffset } = event.nativeEvent;
+        if (contentOffset && scrollY) {
+          scrollY.setValue(contentOffset.y);
+        }
+      } catch (error) {
+        console.error('Erreur lors du défilement:', error);
+      }
+    },
+    [scrollY]
   );
   
-  if (!provider) return null;
+  // Vérification de sécurité améliorée
+  if (!visible || !provider || !provider.id) {
+    if (visible && (!provider || !provider.id)) {
+      console.error('Tentative d\'ouverture du modal sans provider valide:', provider);
+      // Fermeture automatique après un court délai si le provider est invalide
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    }
+    return null;
+  }
 
   const categories = [...new Set(mockMenuItems.map(item => item.category))];
   const popularItems = mockMenuItems.filter(item => item.popular);
@@ -286,7 +363,7 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
         animationType="fade"
         onRequestClose={handleClose}
       >
-        <View 
+        <Animated.View 
           style={[
             responsiveStyles.overlay,
             {
@@ -318,7 +395,7 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
               onComplete={handleLoadingComplete} 
             />
             
-            {!showLoading && (
+            {!showLoading && provider && (
               <>
                 {/* Bouton de fermeture */}
                 <View style={responsiveStyles.header}>
@@ -409,7 +486,7 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
               </>
             )}
           </Animated.View>
-        </View>
+        </Animated.View>
       </Modal>
 
       {/* Menu Modal - Overlay avec flou */}

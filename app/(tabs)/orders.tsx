@@ -370,9 +370,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 45,
+    paddingTop: 5, // Réduit de 45 à 5 pour réduire l'espace avec le sélecteur d'application
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
-    marginBottom: 10,
+    marginBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
   },
   locationContainer: {
     flexDirection: 'row',
@@ -414,8 +414,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 10, // Réduit de 20 à 10 pour réduire l'espace avec le header
+    paddingBottom: 10, // Réduit de 20 à 10 pour réduire l'espace
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   statusText: {
     marginLeft: 6,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold', // Fusionné: conserve le fontWeight le plus récent
   },
   paymentMethod: {
     fontSize: 12,
@@ -676,10 +676,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#92400E',
     fontWeight: '500',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   // Styles pour la commande en cours
   currentOrderSection: {

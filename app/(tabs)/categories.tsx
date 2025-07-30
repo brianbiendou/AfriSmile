@@ -431,9 +431,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    paddingTop: 45,
+    paddingTop: 5, // Réduit de 45 à 5 pour réduire l'espace avec le sélecteur d'application
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
-    marginBottom: 10,
+    marginBottom: 5, // Réduit de 10 à 5 pour réduire l'espace avec le contenu principal
   },
   locationContainer: {
     flexDirection: 'row',
@@ -472,8 +472,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 10, // Réduit de 20 à 10 pour réduire l'espace avec le header
+    paddingBottom: 10, // Réduit de 20 à 10 pour réduire l'espace avec les catégories
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 10, // Réduit de 20 à 10 pour réduire l'espace
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
     gap: 15,

@@ -19,6 +19,8 @@ interface DiscountSectionProps {
   pointsToFcfa: (points: number) => number;
   onApplyDiscount: (percentage: number, checkMinimum?: boolean) => void;
   onShowGoldPromo?: () => void;
+  isGoldMember?: boolean; // Nouveau prop pour le statut Gold réel
+  goldMembership?: any; // Nouveau prop pour les détails de l'abonnement
 }
 
 export default function DiscountSection({
@@ -28,7 +30,9 @@ export default function DiscountSection({
   selectedPayment,
   pointsToFcfa,
   onApplyDiscount,
-  onShowGoldPromo
+  onShowGoldPromo,
+  isGoldMember = false, // Utiliser le statut Gold réel passé en props
+  goldMembership
 }: DiscountSectionProps) {
   const [animatedValues] = useState({
     standard: new Animated.Value(1),
@@ -37,18 +41,25 @@ export default function DiscountSection({
   });
 
   const animatePress = (type: 'standard' | 'premium' | 'first') => {
-    Animated.sequence([
-      Animated.timing(animatedValues[type], {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedValues[type], {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    try {
+      // Délai pour éviter les conflits avec useInsertionEffect
+      setTimeout(() => {
+        Animated.sequence([
+          Animated.timing(animatedValues[type], {
+            toValue: 0.95,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animatedValues[type], {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }, 10);
+    } catch (error) {
+      console.warn('Erreur animation press:', error);
+    }
   };
 
   const formatAmount = (amount: number) => {
@@ -67,7 +78,7 @@ export default function DiscountSection({
     return formatAmount(discountedPrice);
   };
 
-  const isGoldMember = user?.membershipType === 'gold';
+  // isGoldMember est maintenant passé en props depuis le CheckoutModal
 
   const discounts = [
     // Réductions disponibles pour tous
@@ -112,39 +123,50 @@ export default function DiscountSection({
         onApplyDiscount(discountValue, true);
       }
     },
-    // Réductions Gold exclusives (désactivées pour Classic)
-    ...(isGoldMember ? [] : [
-      {
-        id: 'gold-exclusive',
-        type: 'Gold Exclusive',
-        discount: 20,
-        condition: '> 100 pts',
-        icon: <Crown size={12} color="#FFD700" />,
-        gradient: ['#FFD700', '#FFA500'],
-        isActive: false,
-        isAvailable: false,
-        isGoldOnly: true,
-        onPress: () => {
-          animatePress('premium');
+    // Réductions Gold exclusives 
+    {
+      id: 'gold-exclusive',
+      type: 'Gold Exclusive',
+      discount: 20,
+      condition: '> 100 pts',
+      icon: <Crown size={12} color={isGoldMember ? "#FFD700" : "#9CA3AF"} />,
+      gradient: isGoldMember ? ['#FFD700', '#FFA500'] : ['#E5E7EB', '#D1D5DB'],
+      isActive: globalDiscountPercentage === 20,
+      isAvailable: isGoldMember && cartTotal > 100,
+      isGoldOnly: !isGoldMember,
+      onPress: () => {
+        animatePress('premium');
+        if (!isGoldMember) {
           onShowGoldPromo?.();
-        }
-      },
-      {
-        id: 'gold-flash',
-        type: 'Flash Gold',
-        discount: 25,
-        condition: 'Membre Gold',
-        icon: <Star size={12} color="#FFD700" />,
-        gradient: ['#FF6B6B', '#FF8E53'],
-        isActive: false,
-        isAvailable: false,
-        isGoldOnly: true,
-        onPress: () => {
-          animatePress('first');
-          onShowGoldPromo?.();
+        } else if (cartTotal <= 100) {
+          Alert.alert(
+            "Remise non disponible", 
+            "Cette remise nécessite un total > 100 points."
+          );
+        } else {
+          onApplyDiscount(20, true);
         }
       }
-    ])
+    },
+    {
+      id: 'gold-flash',
+      type: 'Flash Gold',
+      discount: 25,
+      condition: 'Membre Gold',
+      icon: <Star size={12} color={isGoldMember ? "#FFD700" : "#9CA3AF"} />,
+      gradient: isGoldMember ? ['#FF6B6B', '#FF8E53'] : ['#E5E7EB', '#D1D5DB'],
+      isActive: globalDiscountPercentage === 25,
+      isAvailable: isGoldMember,
+      isGoldOnly: !isGoldMember,
+      onPress: () => {
+        animatePress('first');
+        if (!isGoldMember) {
+          onShowGoldPromo?.();
+        } else {
+          onApplyDiscount(25, false);
+        }
+      }
+    }
   ];
 
   return (
@@ -152,6 +174,12 @@ export default function DiscountSection({
       <View style={styles.sectionHeader}>
         <Sparkles size={12} color="#FFD700" />
         <Text style={styles.sectionTitle}>Réductions</Text>
+        {isGoldMember && (
+          <View style={styles.goldBadge}>
+            <Crown size={10} color="#FFD700" />
+            <Text style={styles.goldBadgeText}>GOLD</Text>
+          </View>
+        )}
         <Sparkles size={12} color="#FFD700" />
       </View>
       
@@ -455,5 +483,21 @@ const styles = StyleSheet.create({
   goldOnlyText: {
     fontSize: 10,
     textAlign: 'center',
+  },
+  goldBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  goldBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFD700',
   },
 });

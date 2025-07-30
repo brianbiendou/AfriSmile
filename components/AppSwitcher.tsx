@@ -70,8 +70,9 @@ export default function AppSwitcher() {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 8,
     backgroundColor: '#fff',
+    marginTop: 35, // Ajouter de la marge en haut pour éviter le chevauchement avec les notifications
   },
   switcherContainer: {
     flexDirection: 'row',
