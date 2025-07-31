@@ -13,6 +13,7 @@ import { X, Star, MapPin, ShoppingBag, Plus } from 'lucide-react-native';
 import { Clock, Percent } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { router } from 'expo-router';
 import { type ProviderCompat } from '@/data/providers';
 import { useCart } from '@/contexts/CartContext';
 
@@ -188,7 +189,15 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   };
 
   const handleShowMenu = () => {
-    setShowMenu(true);
+    if (provider?.id) {
+      // Fermer le modal d'abord
+      onClose();
+      // Naviguer vers la page de commande avec les paramètres
+      router.push({
+        pathname: '/order/[providerId]',
+        params: { providerId: provider.id }
+      });
+    }
   };
 
   const handleCloseMenu = () => {

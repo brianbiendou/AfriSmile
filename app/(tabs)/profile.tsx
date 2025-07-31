@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { User, Wallet, QrCode, Gift, Settings, CircleHelp as HelpCircle, LogOut, MapPin } from 'lucide-react-native';
 import { Database } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useGold } from '@/contexts/GoldContext'; // Importer le context Gold
@@ -34,6 +37,9 @@ export default function ProfileScreen() {
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [simpleWalletModalVisible, setSimpleWalletModalVisible] = useState(false);
   const [databaseTestVisible, setDatabaseTestVisible] = useState(false);
+
+  // Animations pour les points
+  const goldTextAnim = useRef(new Animated.Value(1)).current;
 
   const { logout, user: authUser } = useAuth();
   const { cartCount } = useCart();
@@ -63,35 +69,35 @@ export default function ProfileScreen() {
       icon: QrCode,
       title: 'Mon QR Code',
       subtitle: 'Code pour les réductions',
-      onPress: () => setQrModalVisible(true),
+      onPress: () => router.push('/(account)/qrcode'),
       color: '#00B14F',
     },
     {
       icon: Wallet,
       title: 'Mon Portefeuille',
       subtitle: 'Gérer mes points et recharges',
-      onPress: () => setSimpleWalletModalVisible(true),
+      onPress: () => router.push('/(account)/wallet'),
       color: '#4ECDC4',
     },
     {
       icon: Gift,
       title: 'Mes Récompenses',
       subtitle: 'Économies et cashback',
-      onPress: () => setRewardsModalVisible(true),
+      onPress: () => router.push('/(account)/rewards'),
       color: '#FF6B6B',
     },
     {
       icon: Settings,
       title: 'Paramètres',
       subtitle: 'Notifications et préférences',
-      onPress: () => Alert.alert('Paramètres', 'Fonctionnalité bientôt disponible'),
+      onPress: () => router.push('/(account)/settings'),
       color: '#45B7D1',
     },
     {
       icon: HelpCircle,
       title: 'Aide & Support',
       subtitle: 'FAQ et contact',
-      onPress: () => Alert.alert('Support', 'Contactez-nous à support@app.ci'),
+      onPress: () => router.push('/(account)/support'),
       color: '#96CEB4',
     },
     {
@@ -111,6 +117,31 @@ export default function ProfileScreen() {
     setLogoutModalVisible(false);
     logout();
   };
+
+  // Animation des points dorés
+  useEffect(() => {
+    // Animation de pulsation douce (compatible avec useNativeDriver)
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(goldTextAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(goldTextAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -138,9 +169,29 @@ export default function ProfileScreen() {
             styles.userCard,
             user.membershipType === 'gold' ? styles.goldMemberCard : {}
           ]}>
-          {/* Cartes de fond inclinées pour l'effet de superposition */}
-          <View style={[styles.cardBackground, user.membershipType === 'gold' ? styles.goldCardBackground : {}]} />
-          <View style={[styles.cardBackground2, user.membershipType === 'gold' ? styles.goldCardBackground : {}]} />
+          {/* Cartes de fond inclinées pour l'effet de superposition avec gradient doré */}
+          {user.membershipType === 'gold' ? (
+            <>
+              <LinearGradient
+                colors={['#FFD700', '#FFA500', '#FFD700', '#FFFF99']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                locations={[0, 0.3, 0.7, 1]}
+                style={[styles.cardBackground, styles.goldCardBackground]}
+              />
+              <LinearGradient
+                colors={['rgba(255, 215, 0, 0.3)', 'rgba(255, 255, 255, 0.6)', 'rgba(255, 215, 0, 0.3)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.cardBackground2, styles.goldCardBackground]}
+              />
+            </>
+          ) : (
+            <>
+              <View style={styles.cardBackground} />
+              <View style={styles.cardBackground2} />
+            </>
+          )}
           <View style={styles.goldOverlay} />
           {user.membershipType === 'gold' && (
             <Image 
@@ -172,8 +223,18 @@ export default function ProfileScreen() {
         <View style={styles.pointsBalanceSection}>
           <View style={styles.pointsBalanceContainer}>
             <Text style={styles.pointsBalanceLabel}>Solde disponible</Text>
-            <Text style={styles.pointsBalanceValue}>
-              {formatPointsWithFcfa(user.points)}
+            <Animated.Text 
+              style={[
+                styles.pointsBalanceValueGold,
+                {
+                  transform: [{ scale: goldTextAnim }],
+                }
+              ]}
+            >
+              {user.points.toLocaleString()} pts
+            </Animated.Text>
+            <Text style={styles.pointsBalanceValueSilver}>
+              {pointsToFcfa(user.points).toLocaleString()} FCFA
             </Text>
           </View>
         </View>
@@ -486,6 +547,23 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#00B14F',
+    marginBottom: 4,
+  },
+  pointsBalanceValueGold: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#DAA520', // Couleur or riche
+    textAlign: 'center',
+    marginBottom: 4,
+    textShadowColor: 'rgba(218, 165, 32, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  pointsBalanceValueSilver: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#C0C0C0', // Couleur argent authentique
+    textAlign: 'center',
     marginBottom: 4,
   },
   pointsUnit: {

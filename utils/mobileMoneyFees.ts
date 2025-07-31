@@ -40,6 +40,11 @@ export const getMobileMoneyFees = async (): Promise<MobileMoneyFee[]> => {
  * Récupère les frais pour un provider spécifique
  */
 export const getFeeByProvider = async (provider: 'mtn' | 'orange' | 'moov'): Promise<number> => {
+  // En mode développement, utiliser directement les valeurs par défaut
+  if (__DEV__) {
+    return getDefaultFeeByProvider(provider);
+  }
+
   try {
     const { data, error } = await supabase
       .from('mobile_money_fees')

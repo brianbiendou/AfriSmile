@@ -649,13 +649,10 @@ export default function SimpleWalletModal({ visible, onClose }: SimpleWalletModa
 
             {/* Informations de solde */}
             <View style={styles.balanceSection}>
-              <View style={styles.balanceRow}>
-                <Text style={styles.balanceLabel}>Points</Text>
-                <Text style={styles.balanceValue}>{user?.points?.toLocaleString() || '0'}</Text>
-              </View>
-              <View style={styles.balanceRow}>
-                <Text style={styles.balanceLabel}>Solde</Text>
-                <Text style={styles.balanceValue}>{pointsToFcfa(user?.points || 0).toLocaleString()} FCFA</Text>
+              <View style={styles.balanceColumn}>
+                <Text style={styles.balanceLabel}>Mon solde</Text>
+                <Text style={styles.balanceValueGold}>{user?.points?.toLocaleString() || '0'} pts</Text>
+                <Text style={styles.balanceValueSilver}>{pointsToFcfa(user?.points || 0).toLocaleString()} FCFA</Text>
               </View>
               
               {/* Bouton de test pour vérifier l'ajout de points */}
@@ -905,12 +902,16 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   balanceSection: {
-    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 25,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  balanceColumn: {
+    alignItems: 'center',
+    flex: 1,
   },
   balanceRow: {
     flex: 1,
@@ -926,6 +927,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
+    textAlign: 'center',
+  },
+  balanceValueGold: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#DAA520', // Couleur or plus riche
+    textAlign: 'center',
+    marginBottom: 4,
+    textShadowColor: 'rgba(218, 165, 32, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  balanceValueSilver: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#C0C0C0', // Couleur argent authentique
     textAlign: 'center',
   },
   tabs: {

@@ -80,7 +80,7 @@ export const getMobileMoneyFees = async (provider: 'mtn' | 'orange' | 'moov'): P
  * @returns true si valide, false sinon
  */
 export const isValidRechargeAmount = (fcfaAmount: number): boolean => {
-  return fcfaAmount >= 1 && fcfaAmount <= 1000; // Entre 1 et 1,000 FCFA
+  return fcfaAmount >= 1000; // Minimum 1,000 FCFA
 };
 
 /**

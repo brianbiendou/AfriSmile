@@ -40,6 +40,7 @@ function AppContent() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(account)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       {/* L'animation globale de coupon, visible quelle que soit la page active */}

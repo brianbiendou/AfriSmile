@@ -5,11 +5,9 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
-  Animated,
   Alert,
 } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, CheckCircle, ArrowLeft } from 'lucide-react-native';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 
@@ -30,54 +28,37 @@ export default function PaymentAggregatorModal({
   visible,
   onClose,
   onSuccess,
-  amount,
-  points,
+  amount = 0,
+  points = 0,
   paymentMethod,
 }: PaymentAggregatorModalProps) {
   const [step, setStep] = useState<'initial' | 'processing' | 'success' | 'error'>('initial');
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
   const responsiveStyles = useResponsiveModalStyles();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  const mobileMoneyProviders = [
+    { id: 'orange', name: 'Orange Money', color: '#FF6600', icon: '🔶', fee: 125 },
+    { id: 'mtn', name: 'MTN Mobile Money', color: '#FFCC00', icon: '💰', fee: 175 },
+    { id: 'wave', name: 'Wave', color: '#00D4FF', icon: '🌊', fee: 100 },
+  ];
 
   useEffect(() => {
     if (visible) {
       setStep('initial');
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      fadeAnim.setValue(0);
-      scaleAnim.setValue(0.9);
+      setSelectedProvider(''); // Reset selection when modal opens
     }
   }, [visible]);
 
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-    });
+    onClose();
   };
 
   const handlePay = () => {
+    if (!selectedProvider) {
+      Alert.alert('Erreur', 'Veuillez sélectionner un mode de paiement');
+      return;
+    }
+    
     setStep('processing');
     
     // Simulation du processus de paiement
@@ -98,6 +79,16 @@ export default function PaymentAggregatorModal({
 
   const handleRetry = () => {
     setStep('initial');
+    setSelectedProvider(''); // Reset selection on retry
+  };
+
+  const getSelectedProvider = () => {
+    return mobileMoneyProviders.find(provider => provider.id === selectedProvider);
+  };
+
+  const getTotalAmount = () => {
+    const provider = getSelectedProvider();
+    return amount + (provider?.fee || 0);
   };
 
   const getPaymentLogo = () => {
@@ -129,14 +120,12 @@ export default function PaymentAggregatorModal({
       onRequestClose={handleClose}
     >
       <View style={responsiveStyles.overlay}>
-        <Animated.View
+        <View
           style={[
             styles.container,
             {
               width: responsiveStyles.container.maxWidth,
               borderRadius: responsiveStyles.container.borderRadius,
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
             },
           ]}
         >
@@ -166,22 +155,49 @@ export default function PaymentAggregatorModal({
                   <Text style={styles.paymentTitle}>Récapitulatif</Text>
                   <View style={styles.paymentDetails}>
                     <Text style={styles.paymentLabel}>Montant:</Text>
-                    <Text style={styles.paymentAmount}>{amount.toLocaleString()} FCFA</Text>
+                    <Text style={styles.paymentAmount}>{(amount || 0).toLocaleString()} FCFA</Text>
+                  </View>
+                  {selectedProvider && (
+                    <View style={styles.paymentDetails}>
+                      <Text style={styles.paymentLabel}>Frais:</Text>
+                      <Text style={styles.paymentFee}>+{getSelectedProvider()?.fee} FCFA</Text>
+                    </View>
+                  )}
+                  <View style={styles.paymentDetails}>
+                    <Text style={styles.paymentLabel}>Total:</Text>
+                    <Text style={styles.paymentTotal}>{getTotalAmount().toLocaleString()} FCFA</Text>
                   </View>
                   <View style={styles.paymentDetails}>
                     <Text style={styles.paymentLabel}>Points à créditer:</Text>
-                    <Text style={styles.paymentPoints}>+{points.toLocaleString()} pts</Text>
-                  </View>
-                  <View style={styles.paymentDetails}>
-                    <Text style={styles.paymentLabel}>Méthode:</Text>
-                    <Text style={styles.paymentMethod}>{paymentMethod.name}</Text>
+                    <Text style={styles.paymentPoints}>+{(points || 0).toLocaleString()} pts</Text>
                   </View>
                 </View>
 
-                <View style={styles.paymentLogo}>
-                  <Text style={[styles.logoText, { color: paymentMethod.color }]}>
-                    {getPaymentLogo()}
-                  </Text>
+                {/* Mobile Money Provider Selection */}
+                <View style={styles.providerSection}>
+                  <Text style={styles.sectionTitle}>Choisissez votre mode de paiement</Text>
+                  <View style={styles.providerGrid}>
+                    {mobileMoneyProviders.map((provider) => (
+                      <TouchableOpacity
+                        key={provider.id}
+                        style={[
+                          styles.providerCard,
+                          selectedProvider === provider.id && styles.selectedProviderCard,
+                          { borderColor: selectedProvider === provider.id ? provider.color : '#E0E0E0' }
+                        ]}
+                        onPress={() => setSelectedProvider(provider.id)}
+                      >
+                        <Text style={styles.providerIcon}>{provider.icon}</Text>
+                        <Text style={styles.providerName}>{provider.name}</Text>
+                        <Text style={styles.providerFee}>Frais: {provider.fee} FCFA</Text>
+                        {selectedProvider === provider.id && (
+                          <View style={[styles.selectedIndicator, { backgroundColor: provider.color }]}>
+                            <CheckCircle size={16} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
 
                 <Text style={styles.secureInfo}>
@@ -189,11 +205,19 @@ export default function PaymentAggregatorModal({
                 </Text>
 
                 <TouchableOpacity 
-                  style={styles.payButton} 
+                  style={[
+                    styles.payButton,
+                    !selectedProvider && styles.disabledButton,
+                    selectedProvider && { backgroundColor: getSelectedProvider()?.color }
+                  ]} 
                   onPress={handlePay}
+                  disabled={!selectedProvider}
                 >
                   <Text style={styles.payButtonText}>
-                    Payer {amount.toLocaleString()} FCFA
+                    {selectedProvider 
+                      ? `Payer ${getTotalAmount().toLocaleString()} FCFA`
+                      : 'Sélectionnez un mode de paiement'
+                    }
                   </Text>
                 </TouchableOpacity>
 
@@ -205,9 +229,12 @@ export default function PaymentAggregatorModal({
 
             {step === 'processing' && (
               <View style={styles.statusContainer}>
-                <ActivityIndicator size="large" color={paymentMethod.color} />
+                <ActivityIndicator size="large" color={getSelectedProvider()?.color || '#00B14F'} />
                 <Text style={styles.processingText}>
                   Traitement du paiement en cours...
+                </Text>
+                <Text style={styles.subInfoText}>
+                  {getSelectedProvider()?.name} - {getTotalAmount().toLocaleString()} FCFA
                 </Text>
                 <Text style={styles.subInfoText}>
                   Veuillez ne pas fermer cette fenêtre
@@ -224,7 +251,7 @@ export default function PaymentAggregatorModal({
                   Paiement réussi !
                 </Text>
                 <Text style={styles.subInfoText}>
-                  {points.toLocaleString()} points ont été ajoutés à votre compte
+                  {(points || 0).toLocaleString()} points ont été ajoutés à votre compte
                 </Text>
               </View>
             )}
@@ -251,7 +278,7 @@ export default function PaymentAggregatorModal({
               </View>
             )}
           </View>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
@@ -330,10 +357,81 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#00B14F',
   },
+  paymentFee: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B6B',
+  },
+  paymentTotal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
   paymentMethod: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  providerSection: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  providerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  providerCard: {
+    width: '48%',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    padding: 15,
+    alignItems: 'center',
+    position: 'relative',
+    minHeight: 100,
+  },
+  selectedProviderCard: {
+    backgroundColor: '#F0F8FF',
+    borderWidth: 2,
+  },
+  providerIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  providerName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 3,
+  },
+  providerFee: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#CCCCCC',
   },
   paymentLogo: {
     width: 120,
@@ -376,19 +474,18 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 30,
+    paddingVertical: 40,
   },
   statusIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
   },
   statusText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
   },
@@ -403,18 +500,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#666',
-    paddingHorizontal: 25,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
     paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    paddingHorizontal: 24,
+    marginTop: 20,
   },
   retryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

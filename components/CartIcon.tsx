@@ -10,10 +10,13 @@ interface CartIconProps {
 export default function CartIcon({ onPress }: CartIconProps) {
   const { cartCount } = useCart();
   const bounceAnim = useRef(new Animated.Value(1)).current;
-  const prevCartCount = useRef(cartCount);
+  const prevCartCount = useRef(cartCount || 0);
+
+  // Vérifier que cartCount est défini
+  const safeCartCount = cartCount || 0;
 
   useEffect(() => {
-    if (cartCount > prevCartCount.current) {
+    if (safeCartCount > prevCartCount.current) {
       // Animation de rebond quand un item est ajouté
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -28,17 +31,17 @@ export default function CartIcon({ onPress }: CartIconProps) {
         }),
       ]).start();
     }
-    prevCartCount.current = cartCount;
-  }, [cartCount]);
+    prevCartCount.current = safeCartCount;
+  }, [safeCartCount]);
 
-  if (cartCount === 0) return null;
+  if (safeCartCount === 0) return null;
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <Animated.View style={[styles.cartContainer, { transform: [{ scale: bounceAnim }] }]}>
         <ShoppingCart size={18} color="#00B14F" />
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{cartCount}</Text>
+          <Text style={styles.badgeText}>{safeCartCount}</Text>
         </View>
       </Animated.View>
     </TouchableOpacity>

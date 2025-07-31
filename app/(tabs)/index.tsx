@@ -7,10 +7,11 @@ import {
   TouchableOpacity, 
   TextInput,
   Dimensions,
-  Alert
+  Alert,
+  FlatList
 } from 'react-native';
 import { Search, MapPin, Star, Wallet } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import ProviderCard from '@/components/ProviderCard';
 import ProviderDetailModal from '@/components/ProviderDetailModal';
@@ -21,7 +22,6 @@ import ReconnectionStatus from '@/components/ReconnectionStatus';
 import { getProviders, subscribeToProviders } from '@/lib/providers';
 import { convertProviderToCompat, type ProviderCompat } from '@/data/providers';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
 import { formatPointsWithFcfa } from '@/utils/pointsConversion';
 import { formatPoints } from '@/utils/pointsConversion';
 
@@ -244,9 +244,66 @@ export default function HomeScreen() {
   // Points de l'utilisateur connecté
   const userPoints = user?.points || 0;
 
+  // Fonction pour rendre une bannière
+  const renderBannerItem = ({ item }: { item: typeof bannerAds[0] }) => (
+    <View style={styles.bannerContainer}>
+      <Image
+        source={{ uri: item.image }}
+        style={styles.bannerImage}
+      />
+      <View style={[styles.bannerOverlay, { backgroundColor: item.backgroundColor }]}>
+        <Text style={styles.bannerTitle}>{item.title}</Text>
+        <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+      </View>
+    </View>
+  );
+
   useEffect(() => {
     // Pas de chargement depuis la base de données - utiliser les données statiques
   }, []);
+
+  // Défilement automatique des bannières
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prevIndex) => {
+        const nextIndex = prevIndex + 1;
+        
+        // Si on arrive à la fin des bannières originales, on revient au début sans animation
+        if (nextIndex >= 5) { // 5 bannières originales
+          // Défiler vers la première bannière dupliquée d'abord
+          if (bannerFlatListRef.current) {
+            bannerFlatListRef.current.scrollToIndex({
+              index: 5, // Index de la première bannière dupliquée
+              animated: true,
+            });
+          }
+          
+          // Puis revenir au début après un court délai
+          setTimeout(() => {
+            if (bannerFlatListRef.current) {
+              bannerFlatListRef.current.scrollToIndex({
+                index: 0,
+                animated: false, // Pas d'animation pour éviter le saut visuel
+              });
+            }
+          }, 300);
+          
+          return 0;
+        } else {
+          // Défiler normalement vers la bannière suivante
+          if (bannerFlatListRef.current) {
+            bannerFlatListRef.current.scrollToIndex({
+              index: nextIndex,
+              animated: true,
+            });
+          }
+          return nextIndex;
+        }
+      });
+    }, 3000); // Défilement toutes les 3 secondes
+
+    return () => clearInterval(interval);
+  }, []); // Pas de dépendance pour éviter les problèmes
 
   const handleProviderPress = (provider: ProviderCompat) => {
     try {
@@ -259,14 +316,9 @@ export default function HomeScreen() {
       
       console.log('Provider sélectionné:', provider.id, provider.name);
       
-      // On défini d'abord le provider
+      // On défini d'abord le provider et ouvre immédiatement le modal
       setSelectedProvider(provider);
-      
-      // Puis on ouvre le modal avec un petit délai pour éviter les problèmes d'animation
-      setTimeout(() => {
-        // Vérification supplémentaire avant d'ouvrir le modal
-        setDetailModalVisible(true);
-      }, 200);
+      setDetailModalVisible(true);
     } catch (error) {
       console.error('Erreur lors de la sélection du prestataire:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ouverture du prestataire. Veuillez réessayer.');
@@ -280,6 +332,58 @@ export default function HomeScreen() {
     { name: 'Pizza', emoji: '🍕', color: '#45B7D1', filter: 'pizza' },
     { name: 'Café', emoji: '☕', color: '#96CEB4', filter: 'cafe' },
   ];
+
+  // Données des bannières publicitaires
+  const originalBannerAds = [
+    {
+      id: '1',
+      title: 'Jusqu\'à -30% sur vos plats préférés',
+      subtitle: 'Découvrez nos offres exclusives',
+      image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)'
+    },
+    {
+      id: '2',
+      title: 'Livraison gratuite dès 5000 FCFA',
+      subtitle: 'Profitez de nos services premium',
+      image: 'https://images.pexels.com/photos/4393021/pexels-photo-4393021.jpeg',
+      backgroundColor: 'rgba(0, 177, 79, 0.7)'
+    },
+    {
+      id: '3',
+      title: 'Nouveaux salons de beauté',
+      subtitle: 'Réservez votre séance dès maintenant',
+      image: 'https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg',
+      backgroundColor: 'rgba(78, 205, 196, 0.7)'
+    },
+    {
+      id: '4',
+      title: 'Menu du jour à partir de 2500 FCFA',
+      subtitle: 'Saveurs authentiques de la Côte d\'Ivoire',
+      image: 'https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg',
+      backgroundColor: 'rgba(255, 107, 107, 0.7)'
+    },
+    {
+      id: '5',
+      title: 'Cashback doublé ce weekend !',
+      subtitle: 'Gagnez plus de points sur vos achats',
+      image: 'https://images.pexels.com/photos/4386476/pexels-photo-4386476.jpeg',
+      backgroundColor: 'rgba(150, 206, 180, 0.7)'
+    }
+  ];
+
+  // Créer un tableau infini en dupliquant les bannières
+  const bannerAds = [
+    ...originalBannerAds,
+    ...originalBannerAds.map(banner => ({
+      ...banner,
+      id: banner.id + '_duplicate'
+    }))
+  ];
+
+  // État pour le carousel des bannières
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const bannerFlatListRef = useRef<FlatList>(null);
 
   const handleCategoryPress = (filter: string) => {
     setSelectedCategory(filter);
@@ -349,16 +453,38 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-        {/* Featured Banner */}
-        <View style={styles.bannerContainer}>
-          <Image
-            source={{ uri: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg' }}
-            style={styles.bannerImage}
-          />
-          <View style={styles.bannerOverlay}>
-            <Text style={styles.bannerTitle}>Jusqu'à -30% sur vos plats préférés</Text>
-            <Text style={styles.bannerSubtitle}>Découvrez nos offres exclusives</Text>
-          </View>
+        {/* Featured Banner Carousel */}
+        <FlatList
+          ref={bannerFlatListRef}
+          data={bannerAds}
+          renderItem={renderBannerItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          snapToAlignment="center"
+          decelerationRate="fast"
+          style={styles.bannerCarousel}
+          onMomentumScrollEnd={(event) => {
+            const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+            // Convertir l'index du carousel infini vers l'index des bannières originales
+            const realIndex = newIndex % 5; // 5 bannières originales
+            setCurrentBannerIndex(realIndex);
+          }}
+        />
+        
+        {/* Indicateurs de pages (dots) */}
+        <View style={styles.dotsContainer}>
+          {[0, 1, 2, 3, 4].map((index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === currentBannerIndex ? styles.activeDot : styles.inactiveDot
+              ]}
+            />
+          ))}
         </View>
 
         {/* Categories */}
@@ -532,7 +658,8 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   bannerContainer: {
-    margin: 20,
+    width: width - 40, // Largeur de l'écran moins les marges (20 de chaque côté)
+    marginHorizontal: 20,
     borderRadius: 16,
     overflow: 'hidden',
     height: 150,
@@ -594,6 +721,28 @@ const styles = StyleSheet.create({
   featuredCard: {
     width: width * 0.42, // Réduit de 40% : 0.7 * 0.6 = 0.42
     marginLeft: 20,
+  },
+  bannerCarousel: {
+    height: 150,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#00B14F',
+  },
+  inactiveDot: {
+    backgroundColor: '#E5E5E5',
   },
   fullWidthCard: {
     marginHorizontal: 20,
