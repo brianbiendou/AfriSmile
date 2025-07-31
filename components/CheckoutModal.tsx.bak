@@ -13,7 +13,8 @@ import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus 
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, fcfaToPoints, generateMobileMoneyFees } from '@/utils/pointsConversion';
+import { pointsToFcfa, fcfaToPoints } from '@/utils/pointsConversion';
+import { getFeeByProvider } from '@/utils/mobileMoneyFees';
 import { useResponsiveModalStyles      <CouponModal 
         visible={showCouponModal}
         onClose={() => setShowCouponModal(false)}
@@ -56,12 +57,36 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const [originalTotal, setOriginalTotal] = useState(cartTotal);
   const [discountedTotal, setDiscountedTotal] = useState(cartTotal);
   
-  // Génération de frais pour chaque méthode mobile money
-  const [mobileFees] = useState({
-    mtn: generateMobileMoneyFees(),
-    orange: generateMobileMoneyFees(),
-    moov: generateMobileMoneyFees(),
+  // État pour les frais Mobile Money (chargés de manière asynchrone)
+  const [mobileFees, setMobileFees] = useState({
+    mtn: 175, // Valeurs par défaut
+    orange: 125,
+    moov: 100,
   });
+
+  // Charger les frais Mobile Money depuis la base de données
+  useEffect(() => {
+    const loadMobileFees = async () => {
+      try {
+        const [mtnFee, orangeFee, moovFee] = await Promise.all([
+          getFeeByProvider('mtn'),
+          getFeeByProvider('orange'),
+          getFeeByProvider('moov')
+        ]);
+        
+        setMobileFees({
+          mtn: mtnFee,
+          orange: orangeFee,
+          moov: moovFee,
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des frais Mobile Money:', error);
+        // Garder les valeurs par défaut en cas d'erreur
+      }
+    };
+
+    loadMobileFees();
+  }, []);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;

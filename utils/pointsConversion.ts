@@ -63,11 +63,15 @@ export const calculateCashback = (orderAmount: number): number => {
 };
 
 /**
- * Calcule les frais Mobile Money aléatoires
- * @returns Frais entre 1 et 2 FCFA
+ * Calcule les frais Mobile Money selon le provider
+ * @param provider Provider de Mobile Money ('mtn', 'orange', 'moov')
+ * @returns Promise avec les frais en FCFA
+ * @deprecated Utiliser getFeeByProvider de mobileMoneyFees.ts à la place
  */
-export const generateMobileMoneyFees = (): number => {
-  return Math.floor(Math.random() * 2) + 1; // 1-2 FCFA
+export const getMobileMoneyFees = async (provider: 'mtn' | 'orange' | 'moov'): Promise<number> => {
+  // Import dynamique pour éviter les dépendances circulaires
+  const { getFeeByProvider } = await import('./mobileMoneyFees');
+  return getFeeByProvider(provider);
 };
 
 /**

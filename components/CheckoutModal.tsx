@@ -13,7 +13,8 @@ import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus 
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, fcfaToPoints, generateMobileMoneyFees } from '@/utils/pointsConversion';
+import { pointsToFcfa, fcfaToPoints } from '@/utils/pointsConversion';
+import { getFeeByProvider } from '@/utils/mobileMoneyFees';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
@@ -46,12 +47,36 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const [originalTotal, setOriginalTotal] = useState(cartTotal);
   const [discountedTotal, setDiscountedTotal] = useState(cartTotal);
   
-  // Génération de frais pour chaque méthode mobile money
-  const [mobileFees] = useState({
-    mtn: generateMobileMoneyFees(),
-    orange: generateMobileMoneyFees(),
-    moov: generateMobileMoneyFees(),
+  // État pour les frais Mobile Money (chargés de manière asynchrone)
+  const [mobileFees, setMobileFees] = useState({
+    mtn: 175, // Valeurs par défaut
+    orange: 125,
+    moov: 100,
   });
+
+  // Charger les frais Mobile Money depuis la base de données
+  useEffect(() => {
+    const loadMobileFees = async () => {
+      try {
+        const [mtnFee, orangeFee, moovFee] = await Promise.all([
+          getFeeByProvider('mtn'),
+          getFeeByProvider('orange'),
+          getFeeByProvider('moov')
+        ]);
+        
+        setMobileFees({
+          mtn: mtnFee,
+          orange: orangeFee,
+          moov: moovFee,
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des frais Mobile Money:', error);
+        // Garder les valeurs par défaut en cas d'erreur
+      }
+    };
+
+    loadMobileFees();
+  }, []);
 
   // Mettre à jour les totaux quand cartTotal change (à cause des coupons ou modifications du panier)
   useEffect(() => {
@@ -136,11 +161,13 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   };
 
   const handlePayment = () => {
+    const finalTotal = calculateFinalTotal();
+    
     // Vérifier si l'utilisateur a assez de points pour le paiement en points
-    if (selectedPayment === 'points' && (!user || user.points < cartTotal)) {
+    if (selectedPayment === 'points' && (!user || user.points < finalTotal)) {
       Alert.alert(
         'Solde insuffisant', 
-        `Vous avez ${user?.points?.toLocaleString() || 0} points mais il vous faut ${cartTotal.toLocaleString()} points pour cette commande.`
+        `Vous avez ${user?.points?.toLocaleString() || 0} points mais il vous faut ${finalTotal.toLocaleString()} points pour cette commande.`
       );
       return;
     }
@@ -153,15 +180,18 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
       
       // Si paiement en points, déduire les points
       if (selectedPayment === 'points') {
-        await updateUserPoints(-cartTotal);
+        await updateUserPoints(-finalTotal);
       }
       
       clearCart();
+      
+      const feeInfo = selectedPayment !== 'points' ? `\nFrais ${selectedPayment.toUpperCase()}: ${getSelectedMethodFee()} FCFA` : '';
+      
       Alert.alert(
         'Commande confirmée !',
         selectedPayment === 'points' 
-          ? `Commande payée avec ${cartTotal.toLocaleString()} points !\nVous recevrez une notification quand elle sera prête.`
-          : 'Votre commande a été passée avec succès. Vous recevrez une notification quand elle sera prête.',
+          ? `Commande payée avec ${finalTotal.toLocaleString()} points !\nVous recevrez une notification quand elle sera prête.`
+          : `Votre commande a été passée avec succès.${feeInfo}\nVous recevrez une notification quand elle sera prête.`,
         [{ text: 'OK', onPress: handleClose }]
       );
     }, 2000);
@@ -257,6 +287,27 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     return selectedPayment === 'points' 
       ? `${amount.toLocaleString()} pts`
       : `${pointsToFcfa(amount).toLocaleString()} FCFA`;
+  };
+
+  // Fonction pour calculer le total final avec frais Mobile Money
+  const calculateFinalTotal = () => {
+    const baseTotal = globalDiscountPercentage > 0 ? discountedTotal : cartTotal;
+    
+    // Ajouter les frais seulement si ce n'est pas un paiement en points
+    if (selectedPayment !== 'points') {
+      const selectedFee = mobileFees[selectedPayment as keyof typeof mobileFees] || 0;
+      // Convertir les frais FCFA en points pour l'addition
+      const feeInPoints = Math.round(selectedFee / 78.359);
+      return baseTotal + feeInPoints;
+    }
+    
+    return baseTotal;
+  };
+
+  // Fonction pour obtenir les frais de la méthode sélectionnée
+  const getSelectedMethodFee = () => {
+    if (selectedPayment === 'points') return 0;
+    return mobileFees[selectedPayment as keyof typeof mobileFees] || 0;
   };
   
   // Gestionnaire pour promouvoir Gold - NOUVEAU SYSTÈME
@@ -472,10 +523,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                       </Text>
                     )}
                     <Text style={styles.totalAmount}>
-                      {selectedPayment === 'points' 
-                        ? `${(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts`
-                        : `${pointsToFcfa(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} FCFA`
-                      }
+                      {formatAmount(calculateFinalTotal())}
                     </Text>
                     {globalDiscountPercentage > 0 && (
                       <View style={styles.discountRow}>
@@ -486,6 +534,11 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                           }
                         </Text>
                       </View>
+                    )}
+                    {selectedPayment !== 'points' && getSelectedMethodFee() > 0 && (
+                      <Text style={styles.feeText}>
+                        (dont {getSelectedMethodFee()} FCFA de frais)
+                      </Text>
                     )}
                   </View>
                 </View>
@@ -498,7 +551,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     <Text style={styles.payButtonText}>Traitement en cours...</Text>
                   ) : (
                     <Text style={styles.payButtonText}>
-                      Payer {(globalDiscountPercentage > 0 ? discountedTotal : cartTotal).toLocaleString()} pts
+                      Payer {formatAmount(calculateFinalTotal())}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -857,5 +910,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginHorizontal: 12,
+  },
+  feeText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'right',
+    marginTop: 2,
   },
 });

@@ -123,3 +123,15 @@ export interface Category {
   is_active: boolean;
   created_at: string;
 }
+
+export interface MobileMoneyFee {
+  id: string;
+  provider: 'mtn' | 'orange' | 'moov';
+  provider_name: string;
+  fee_amount: number;
+  min_amount: number;
+  max_amount: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
