@@ -15,9 +15,24 @@ import { CheckCircle, ArrowLeft, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PaymentScreen() {
-  const { amount, points, paymentMethodId, paymentMethodName, paymentMethodColor } = useLocalSearchParams();
+  const { 
+    amount, 
+    points, 
+    paymentMethodId, 
+    paymentMethodName, 
+    paymentMethodColor,
+    type,
+    planId,
+    planName
+  } = useLocalSearchParams();
+  
   const [step, setStep] = useState<'initial' | 'processing' | 'success' | 'error'>('initial');
   const [selectedProvider, setSelectedProvider] = useState<string>('');
+
+  // Déterminer le type de transaction
+  const isGoldMembership = type === 'gold_membership';
+  const transactionTitle = isGoldMembership ? (planName as string || 'Abonnement Gold') : 'Recharge Portefeuille';
+  const transactionAmount = parseInt(amount as string || '0');
 
   const mobileMoneyProviders = [
     { id: 'orange', name: 'Orange Money', color: '#FF6600', icon: '🔶', fee: 125 },
@@ -62,12 +77,14 @@ export default function PaymentScreen() {
     
     const newTransaction = {
       id: `${Date.now()}_${Math.random()}`,
-      type: 'recharge' as const,
+      type: isGoldMembership ? 'gold_subscription' as const : 'recharge' as const,
       amount: totalWithFees,
-      points: parseInt(points as string, 10),
+      points: isGoldMembership ? 0 : parseInt(points as string, 10),
       date: new Date().toISOString(),
       method: provider?.name || 'Mobile Money',
       provider: provider?.name || '',
+      description: isGoldMembership ? transactionTitle : undefined,
+      planId: isGoldMembership ? planId as string : undefined,
     };
 
     // Sauvegarder dans AsyncStorage pour persister
@@ -82,7 +99,7 @@ export default function PaymentScreen() {
   };
 
   const getTotalWithFees = () => {
-    const baseAmount = parseInt(amount as string, 10) || 0;
+    const baseAmount = transactionAmount;
     const provider = mobileMoneyProviders.find(p => p.id === selectedProvider);
     return baseAmount + (provider?.fee || 0);
   };
@@ -96,15 +113,33 @@ export default function PaymentScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Paiement Sécurisé</Text>
-        <Text style={styles.subtitle}>Sélectionnez votre mode de paiement</Text>
+        <Text style={styles.subtitle}>
+          {isGoldMembership ? 'Abonnement Gold' : 'Recharge de votre portefeuille'}
+        </Text>
       </View>
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryTitle}>Récapitulatif</Text>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Montant:</Text>
-          <Text style={styles.summaryValue}>{amount} FCFA</Text>
+          <Text style={styles.summaryLabel}>
+            {isGoldMembership ? 'Abonnement:' : 'Montant:'}
+          </Text>
+          <Text style={styles.summaryValue}>
+            {isGoldMembership ? transactionTitle : `${amount} FCFA`}
+          </Text>
         </View>
+        {!isGoldMembership && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Montant:</Text>
+            <Text style={styles.summaryValue}>{amount} FCFA</Text>
+          </View>
+        )}
+        {isGoldMembership && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Prix:</Text>
+            <Text style={styles.summaryValue}>{amount} FCFA</Text>
+          </View>
+        )}
         {selectedProvider && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Frais:</Text>
@@ -117,10 +152,12 @@ export default function PaymentScreen() {
           <Text style={styles.summaryLabel}>Total:</Text>
           <Text style={styles.summaryValue}>{getTotalWithFees()} FCFA</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Points à créditer:</Text>
-          <Text style={styles.summaryValueHighlight}>+{points} pts</Text>
-        </View>
+        {!isGoldMembership && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Points à créditer:</Text>
+            <Text style={styles.summaryValueHighlight}>+{points} pts</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>

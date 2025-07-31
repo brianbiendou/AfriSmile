@@ -14,7 +14,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGold } from '@/contexts/GoldContext';
-import PaymentAggregatorModal from './PaymentAggregatorModal';
+import { useRouter } from 'expo-router';
 import { fcfaToPoints } from '@/utils/pointsConversion';
 
 const { width, height } = Dimensions.get('window');
@@ -36,10 +36,10 @@ interface MembershipPlan {
 
 export default function GoldMembershipModal({ visible, onClose }: GoldMembershipModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>('quarterly'); // Plan par défaut
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const { user } = useAuth();
   const { activateGoldMembership } = useGold();
+  const router = useRouter();
   
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -208,27 +208,19 @@ export default function GoldMembershipModal({ visible, onClose }: GoldMembership
   const handleSubscribe = useCallback(() => {
     const plan = plans.find(p => p.id === selectedPlan);
     if (plan) {
-      // Logique d'abonnement - ouvrir le modal de paiement
-      setShowPaymentModal(true);
+      // Fermer le modal et rediriger vers la page de paiement avec les paramètres Gold
+      onClose();
+      router.push({
+        pathname: '/(account)/payment',
+        params: {
+          type: 'gold_membership',
+          amount: plan.currentPrice.toString(),
+          planId: selectedPlan,
+          planName: `Abonnement Gold ${plan.title}`
+        }
+      });
     }
-  }, [selectedPlan, plans]);
-
-  const handlePaymentSuccess = useCallback(async () => {
-    const plan = plans.find(p => p.id === selectedPlan);
-    if (plan) {
-      try {
-        await activateGoldMembership(selectedPlan as 'monthly' | 'quarterly' | 'yearly');
-        setShowPaymentModal(false);
-        onClose();
-        
-        // Optionnel : afficher une notification de succès
-        console.log(`Abonnement Gold ${plan.title} activé avec succès !`);
-      } catch (error) {
-        console.error('Erreur lors de l\'activation de l\'abonnement:', error);
-        // Gérer l'erreur, peut-être afficher un message d'erreur
-      }
-    }
-  }, [selectedPlan, plans, activateGoldMembership, onClose]);
+  }, [selectedPlan, plans, onClose, router]);
 
   const crownRotate = crownRotateAnim.interpolate({
     inputRange: [0, 1],
@@ -238,7 +230,6 @@ export default function GoldMembershipModal({ visible, onClose }: GoldMembership
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
 
   return (
-    <>
       <Modal
         visible={visible}
         transparent={true}
@@ -428,23 +419,6 @@ export default function GoldMembershipModal({ visible, onClose }: GoldMembership
           </Animated.View>
         </Animated.View>
       </Modal>
-
-      {/* Modal de paiement */}
-      {selectedPlanData && (
-        <PaymentAggregatorModal
-          visible={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-          amount={selectedPlanData.currentPrice}
-          points={0}
-          paymentMethod={{
-            id: 'subscription',
-            name: `Abonnement Gold ${selectedPlanData.title}`,
-            color: '#FFD700',
-          }}
-        />
-      )}
-    </>
   );
 }
 

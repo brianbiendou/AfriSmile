@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { X, Crown, Percent, Gift, Star, Zap, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import GoldPurchaseSimulation from './GoldPurchaseSimulation';
+import { useRouter } from 'expo-router';
 
 interface GoldMembershipPromoProps {
   visible: boolean;
@@ -26,7 +26,7 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onG
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const [showPurchaseSimulation, setShowPurchaseSimulation] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (visible) {
@@ -235,7 +235,16 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onG
                 <TouchableOpacity 
                   style={styles.subscribeButton}
                   onPress={() => {
-                    setShowPurchaseSimulation(true);
+                    onClose();
+                    router.push({
+                      pathname: '/(account)/payment',
+                      params: {
+                        type: 'gold_membership',
+                        amount: '2000',
+                        planId: 'monthly',
+                        planName: 'Abonnement Gold Mensuel'
+                      }
+                    });
                   }}
                   activeOpacity={0.8}
                 >
@@ -258,17 +267,6 @@ export default function GoldMembershipPromo({ visible, onClose, onSubscribe, onG
           </ScrollView>
         </Animated.View>
       </Animated.View>
-      
-      {/* Simulation d'achat Gold */}
-      <GoldPurchaseSimulation
-        visible={showPurchaseSimulation}
-        onClose={() => setShowPurchaseSimulation(false)}
-        onSuccess={() => {
-          setShowPurchaseSimulation(false);
-          onGoldUpgradeSuccess?.();
-          handleClose();
-        }}
-      />
     </Modal>
   );
 }
