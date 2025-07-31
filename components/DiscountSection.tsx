@@ -70,7 +70,8 @@ export default function DiscountSection({
 
   const calculateSavings = (discount: number) => {
     const savings = Math.round(cartTotal * (discount / 100));
-    return formatAmount(savings);
+    // cartTotal est déjà en FCFA, pas besoin de conversion
+    return `${savings.toLocaleString()} FCFA`;
   };
 
   const calculateDiscountedPrice = (originalPrice: number, discount: number) => {

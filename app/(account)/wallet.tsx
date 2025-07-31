@@ -11,12 +11,12 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { X, Smartphone, Plus, CreditCard, Wallet, History, TrendingUp } from 'lucide-react-native';
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa, isValidRechargeAmount } from '@/utils/pointsConversion';
-import PaymentAggregatorModal from '@/components/PaymentAggregatorModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,7 +38,6 @@ export default function WalletScreen() {
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [confetti, setConfetti] = useState<Array<{id: number, x: number, y: number, color: string}>>([]);
   const [quickAmounts] = useState<number[]>([1000, 2000, 5000, 10000]); // Montants rapides pour sélection facile
-  const [showPaymentAggregator, setShowPaymentAggregator] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const { user, addUserPoints } = useAuth();
@@ -98,12 +97,40 @@ export default function WalletScreen() {
     },
   ], []);
 
-  // Initialiser les transactions au premier rendu
-  useEffect(() => {
-    if (transactions.length === 0) {
+  // Fonction pour charger les transactions depuis AsyncStorage
+  const loadTransactions = async () => {
+    try {
+      const storedTransactions = await AsyncStorage.getItem('wallet_transactions');
+      if (storedTransactions) {
+        const parsedTransactions = JSON.parse(storedTransactions);
+        setTransactions(parsedTransactions);
+      } else {
+        // Si aucune transaction stockée, utiliser les données mock
+        setTransactions(mockTransactions);
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des transactions:', error);
+      // En cas d'erreur, utiliser les données mock
       setTransactions(mockTransactions);
     }
-  }, [mockTransactions, transactions.length]);
+  };
+
+  // Fonction pour recharger les transactions (utile pour actualiser après un paiement)
+  const refreshTransactions = useCallback(() => {
+    loadTransactions();
+  }, []);
+
+  // Initialiser les transactions au premier rendu
+  useEffect(() => {
+    loadTransactions();
+  }, []);
+
+  // Recharger les transactions quand on revient sur cette page
+  useFocusEffect(
+    useCallback(() => {
+      refreshTransactions();
+    }, [refreshTransactions])
+  );
 
   // Fonction pour ajouter une nouvelle transaction
   const addTransaction = useCallback((newTransaction: Omit<Transaction, 'id' | 'date'>) => {
@@ -154,9 +181,21 @@ export default function WalletScreen() {
     setTimeout(() => {
       setIsProcessing(false);
       
-      // Si c'est mobile money ou carte bancaire, afficher le modal de l'agrégateur de paiement
+      // Si c'est mobile money ou carte bancaire, rediriger vers la page de paiement
       if (selectedMethod === 'mobile' || selectedMethod === 'card') {
-        setShowPaymentAggregator(true);
+        const numAmount = parseInt(amount, 10);
+        const pointsToAdd = fcfaToPoints(numAmount);
+        
+        router.push({
+          pathname: '/(account)/payment',
+          params: {
+            amount: numAmount.toString(),
+            points: pointsToAdd.toString(),
+            paymentMethodId: selectedMethod,
+            paymentMethodName: selectedMethod === 'mobile' ? 'Mobile Money' : 'Carte Bancaire',
+            paymentMethodColor: selectedMethod === 'mobile' ? '#FF6600' : '#4CAF50',
+          },
+        });
         return;
       }
 
@@ -635,24 +674,6 @@ export default function WalletScreen() {
           ))}
         </View>
       )}
-
-      {/* Modal pour l'agrégateur de paiement */}
-      <PaymentAggregatorModal
-        visible={showPaymentAggregator}
-        onClose={() => setShowPaymentAggregator(false)}
-        onSuccess={() => {
-          // Fermer le modal et confirmer le paiement qui ajoutera à l'historique
-          setShowPaymentAggregator(false);
-          handleConfirmPayment();
-        }}
-        amount={parseInt(amount, 10) || 0}
-        points={fcfaToPoints(parseInt(amount, 10) || 0)}
-        paymentMethod={{
-          id: selectedMethod === 'mobile' ? 'mobile_money' : 'card',
-          name: selectedMethod === 'mobile' ? 'Mobile Money' : 'Carte Bancaire',
-          color: selectedMethod === 'mobile' ? '#4ECDC4' : '#45B7D1'
-        }}
-      />
     </>
   );
 }

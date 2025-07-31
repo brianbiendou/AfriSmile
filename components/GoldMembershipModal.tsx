@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGold } from '@/contexts/GoldContext';
 import PaymentAggregatorModal from './PaymentAggregatorModal';
+import { fcfaToPoints } from '@/utils/pointsConversion';
 
 const { width, height } = Dimensions.get('window');
 
@@ -379,12 +380,15 @@ export default function GoldMembershipModal({ visible, onClose }: GoldMembership
                         {plan.originalPrice.toLocaleString()} FCFA
                       </Text>
                       <Text style={styles.currentPrice}>
+                        {fcfaToPoints(plan.currentPrice)} pts
+                      </Text>
+                      <Text style={styles.fcfaPrice}>
                         {plan.currentPrice.toLocaleString()} FCFA
                       </Text>
                     </View>
 
                     <Text style={styles.savings}>
-                      Économisez {plan.savings.toLocaleString()} FCFA
+                      Économisez {fcfaToPoints(plan.savings)} pts
                     </Text>
 
                     <View style={[
@@ -646,6 +650,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  fcfaPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
   },
   savings: {
     fontSize: 14,

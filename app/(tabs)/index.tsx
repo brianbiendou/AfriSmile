@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Search, MapPin, Star, Wallet } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useCart } from '@/contexts/CartContext';
 import ProviderCard from '@/components/ProviderCard';
 import ProviderDetailModal from '@/components/ProviderDetailModal';
@@ -28,6 +29,7 @@ import { formatPoints } from '@/utils/pointsConversion';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { showCart } = useLocalSearchParams<{ showCart?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<ProviderCompat | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -261,6 +263,13 @@ export default function HomeScreen() {
   useEffect(() => {
     // Pas de chargement depuis la base de données - utiliser les données statiques
   }, []);
+
+  // Gérer l'ouverture automatique du panier
+  useEffect(() => {
+    if (showCart === 'true') {
+      setCartModalVisible(true);
+    }
+  }, [showCart]);
 
   // Défilement automatique des bannières
   useEffect(() => {

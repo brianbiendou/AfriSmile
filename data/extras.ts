@@ -13,7 +13,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra1',
     name: 'Bouteille d\'eau minérale',
     description: 'Eau minérale naturelle fraîche et purifiée, 50cl.',
-    price: 2.55, // 200 FCFA
+    price: 200, // FCFA
     image: 'https://images.unsplash.com/photo-1593574892022-af4adc4b5b8a',
     category: 'boissons',
   },
@@ -21,7 +21,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra2',
     name: 'Coca-Cola',
     description: 'Boisson gazeuse rafraîchissante, 33cl.',
-    price: 3.19, // 250 FCFA
+    price: 250, // FCFA
     image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7',
     category: 'boissons',
   },
@@ -29,7 +29,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra3',
     name: 'Fanta Orange',
     description: 'Boisson gazeuse à l\'orange, 33cl.',
-    price: 3.19, // 250 FCFA
+    price: 250, // FCFA
     image: 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3',
     category: 'boissons',
   },
@@ -37,7 +37,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra4',
     name: 'Portion de frites',
     description: 'Frites croustillantes fraîchement préparées.',
-    price: 3.83, // 300 FCFA
+    price: 300, // FCFA
     image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d',
     category: 'accompagnements',
   },
@@ -45,7 +45,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra5',
     name: 'Alloco',
     description: 'Bananes plantain frites, spécialité locale délicieuse.',
-    price: 3.19, // 250 FCFA
+    price: 250, // FCFA
     image: 'https://images.unsplash.com/photo-1593280405882-fa68a0eb5cc5',
     category: 'accompagnements',
   },
@@ -53,7 +53,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra6',
     name: 'Petit Pot de Piment',
     description: 'Piment local épicé pour rehausser le goût de vos plats.',
-    price: 1.28, // 100 FCFA
+    price: 100, // FCFA
     image: 'https://images.unsplash.com/photo-1589010588553-46e8e7c21788',
     category: 'condiments',
   },
@@ -61,7 +61,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra7',
     name: 'Mayonnaise',
     description: 'Sauce mayonnaise onctueuse en petit pot individuel.',
-    price: 1.28, // 100 FCFA
+    price: 100, // FCFA
     image: 'https://images.unsplash.com/photo-1563599175592-c58dc214deff',
     category: 'condiments',
   },
@@ -69,7 +69,7 @@ export const mockExtras: ExtraItem[] = [
     id: 'extra8',
     name: 'Salade Fraîche',
     description: 'Petite portion de salade fraîche assortie.',
-    price: 2.55, // 200 FCFA
+    price: 200, // FCFA
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
     category: 'accompagnements',
   },

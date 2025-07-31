@@ -14,6 +14,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Plus, Truck, Package, Users, Star, Clock, MapPin, Percent } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { fcfaToPoints } from '@/utils/pointsConversion';
 
 const { width } = Dimensions.get('window');
 
@@ -362,7 +363,8 @@ export default function OrderScreen() {
       <View style={styles.featuredProductInfo}>
         <Text style={styles.featuredProductName} numberOfLines={2}>{product.name}</Text>
         <View style={styles.featuredPriceContainer}>
-          <Text style={styles.featuredProductPrice}>{product.price.toLocaleString()} FCFA</Text>
+          <Text style={styles.featuredProductPrice}>{fcfaToPoints(product.price)} pts</Text>
+          <Text style={styles.featuredProductPriceFcfa}>{product.price.toLocaleString()} FCFA</Text>
           {product.discount && (
             <View style={styles.featuredDiscountContainer}>
               <Percent size={12} color="#00B14F" />
@@ -387,9 +389,10 @@ export default function OrderScreen() {
     <View key={offer.id} style={styles.offerCard}>
       <View style={styles.offerInfo}>
         <Text style={styles.offerTitle}>{offer.title}</Text>
-        <Text style={styles.offerPrice}>{offer.price.toLocaleString()} FCFA</Text>
+        <Text style={styles.offerPrice}>{fcfaToPoints(offer.price)} pts</Text>
+        <Text style={styles.offerPriceFcfa}>{offer.price.toLocaleString()} FCFA</Text>
         {offer.originalPrice && (
-          <Text style={styles.offerOriginalPrice}>{offer.originalPrice.toLocaleString()} FCFA</Text>
+          <Text style={styles.offerOriginalPrice}>{fcfaToPoints(offer.originalPrice)} pts</Text>
         )}
         <View style={styles.offerDiscountContainer}>
           <Percent size={12} color="#00B14F" />
@@ -528,9 +531,10 @@ export default function OrderScreen() {
                   </Text>
                   
                   <View style={styles.verticalOfferPriceContainer}>
-                    <Text style={styles.verticalOfferPrice}>{offer.price.toLocaleString()} FCFA</Text>
+                    <Text style={styles.verticalOfferPrice}>{fcfaToPoints(offer.price)} pts</Text>
+                    <Text style={styles.verticalOfferPriceFcfa}>{offer.price.toLocaleString()} FCFA</Text>
                     {offer.originalPrice && (
-                      <Text style={styles.verticalOfferOriginalPrice}>{offer.originalPrice.toLocaleString()} FCFA</Text>
+                      <Text style={styles.verticalOfferOriginalPrice}>{fcfaToPoints(offer.originalPrice)} pts</Text>
                     )}
                     {offer.discount && (
                       <Text style={styles.verticalOfferDiscount}>-{offer.discount}%</Text>
@@ -571,7 +575,10 @@ export default function OrderScreen() {
                     <Text style={styles.menuItemDescription} numberOfLines={2}>
                       {item.description}
                     </Text>
-                    <Text style={styles.menuItemPrice}>{item.price.toLocaleString()} FCFA</Text>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.menuItemPrice}>{fcfaToPoints(item.price).toLocaleString()} pts</Text>
+                      <Text style={styles.menuItemPriceFcfa}>{item.price.toLocaleString()} FCFA</Text>
+                    </View>
                   </View>
                   
                   <TouchableOpacity 
@@ -806,7 +813,13 @@ const styles = StyleSheet.create({
   featuredProductPrice: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#00B14F',
+  },
+  featuredProductPriceFcfa: {
+    fontSize: 10,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 1,
   },
   featuredDiscountContainer: {
     flexDirection: 'row',
@@ -879,7 +892,13 @@ const styles = StyleSheet.create({
   verticalOfferPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#00B14F',
+  },
+  verticalOfferPriceFcfa: {
+    fontSize: 10,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
   },
   verticalOfferOriginalPrice: {
     fontSize: 12,
@@ -1059,7 +1078,13 @@ const styles = StyleSheet.create({
   offerPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#00B14F',
+    marginBottom: 2,
+  },
+  offerPriceFcfa: {
+    fontSize: 11,
+    color: '#999',
+    textDecorationLine: 'line-through',
     marginBottom: 2,
   },
   offerOriginalPrice: {
@@ -1107,15 +1132,13 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 8,
   },
-  offerAddButton: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  menuItemPriceFcfa: {
+    fontSize: 10,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
   },
 });

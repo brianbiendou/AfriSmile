@@ -7,7 +7,7 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import { Clock, CircleCheck as CheckCircle, Circle as XCircle, X, Wallet, MapPin } from 'lucide-react-native';
+import { Clock, CircleCheck as CheckCircle, Circle as XCircle, X, Wallet, MapPin, ShoppingCart, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -170,6 +170,31 @@ export default function OrdersScreen() {
           <Text style={styles.title}>Mes Commandes</Text>
           <Text style={styles.subtitle}>Suivez vos réservations et achats</Text>
         </View>
+
+        {/* Section Panier */}
+        {cartCount > 0 && (
+          <View style={styles.cartSection}>
+            <View style={styles.cartHeader}>
+              <View style={styles.cartInfo}>
+                <ShoppingCart size={20} color="#00B14F" />
+                <Text style={styles.cartTitle}>Panier actuel</Text>
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={styles.viewCartButton}
+                onPress={() => setCartModalVisible(true)}
+              >
+                <Text style={styles.viewCartButtonText}>Voir le panier</Text>
+                <ChevronRight size={16} color="#00B14F" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.cartSubtitle}>
+              {cartCount} article{cartCount > 1 ? 's' : ''} en attente de commande
+            </Text>
+          </View>
+        )}
         
         <View style={styles.ordersContainer}>
         {loading ? (
@@ -427,6 +452,50 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    color: '#8E8E8E',
+  },
+  cartSection: {
+    backgroundColor: '#fff',
+    margin: 20,
+    padding: 15,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cartInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cartTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginLeft: 8,
+  },
+  cartBadge: {
+    backgroundColor: '#00B14F',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  cartSubtitle: {
+    fontSize: 14,
     color: '#8E8E8E',
   },
   ordersContainer: {

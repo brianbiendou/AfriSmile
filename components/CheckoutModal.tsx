@@ -9,11 +9,11 @@
   Animated,
   Alert,
 } from 'react-native';
-import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus } from 'lucide-react-native';
+import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, fcfaToPoints } from '@/utils/pointsConversion';
+import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa } from '@/utils/pointsConversion';
 import { getFeeByProvider } from '@/utils/mobileMoneyFees';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import { Coupon } from '@/data/coupons';
@@ -46,6 +46,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const [globalDiscountPercentage, setGlobalDiscountPercentage] = useState(0);
   const [originalTotal, setOriginalTotal] = useState(cartTotal);
   const [discountedTotal, setDiscountedTotal] = useState(cartTotal);
+  const [isCartExpanded, setIsCartExpanded] = useState(false);
   
   // État pour les frais Mobile Money (chargés de manière asynchrone)
   const [mobileFees, setMobileFees] = useState({
@@ -278,7 +279,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     // Afficher une notification
     Alert.alert(
       "🎉 Remise appliquée !",
-      `Une remise de ${discountPercentage}% a été appliquée à votre commande.\n\nNouveau total: ${formatAmount(discounted)}`,
+      `Une remise de ${discountPercentage}% a été appliquée à votre commande.\n\nNouveau total: ${discounted.toLocaleString()} FCFA`,
       [{ text: "Super !", style: "default" }]
     );
   };
@@ -293,15 +294,18 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const calculateFinalTotal = () => {
     const baseTotal = globalDiscountPercentage > 0 ? discountedTotal : cartTotal;
     
+    // Convertir le total FCFA en points
+    const baseTotalInPoints = fcfaToPoints(baseTotal);
+    
     // Ajouter les frais seulement si ce n'est pas un paiement en points
     if (selectedPayment !== 'points') {
       const selectedFee = mobileFees[selectedPayment as keyof typeof mobileFees] || 0;
       // Convertir les frais FCFA en points pour l'addition
-      const feeInPoints = Math.round(selectedFee / 78.359);
-      return baseTotal + feeInPoints;
+      const feeInPoints = fcfaToPoints(selectedFee);
+      return Math.round(baseTotalInPoints + feeInPoints);
     }
     
-    return baseTotal;
+    return Math.round(baseTotalInPoints);
   };
 
   // Fonction pour obtenir les frais de la méthode sélectionnée
@@ -378,6 +382,24 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   </View>
                 </View>
 
+                {/* Carte Google Maps */}
+                <View style={styles.section}>
+                  <View style={styles.mapContainer}>
+                    <Image 
+                      source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=200&fit=crop' }}
+                      style={styles.mapPlaceholder}
+                    />
+                    <View style={styles.mapOverlay}>
+                      <View style={styles.mapMarker}>
+                        <View style={styles.markerDot} />
+                      </View>
+                      <TouchableOpacity style={styles.mapButton}>
+                        <Text style={styles.mapButtonText}>Modifier le repère</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
                 {/* Nouvelle zone de réductions stylée */}
                 <DiscountSection
                   cartTotal={cartTotal}
@@ -391,59 +413,94 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   goldMembership={membership} // Passer les détails de l'abonnement
                 />
 
-                {/* Articles commandés */}
+                {/* Articles commandés - Liste déroulante */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Articles commandés</Text>
-                  {cartItems.map((item) => (
-                    <View key={item.id} style={styles.orderItem}>
-                      <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-                      
-                      <View style={styles.itemDetails}>
-                        <Text style={styles.itemName}>{item.productName}</Text>
-                        <Text style={styles.providerName}>{item.providerName}</Text>
-                        
-                        {item.customizations && item.customizations.length > 0 && (
-                          <Text style={styles.customizations} numberOfLines={2}>
-                            {formatCustomizations(item.customizations)}
+                  <TouchableOpacity 
+                    style={styles.cartHeaderSection}
+                    onPress={() => setIsCartExpanded(!isCartExpanded)}
+                  >
+                    <View style={styles.cartHeaderContent}>
+                      <Text style={styles.cartHeaderTitle}>
+                        Articles commandés ({cartItems.length})
+                      </Text>
+                      <View style={styles.cartHeaderRight}>
+                        <View style={styles.cartHeaderTotalContainer}>
+                          <Text style={styles.cartHeaderTotal}>
+                            {fcfaToPoints(cartTotal).toFixed(2)} pts
                           </Text>
-                        )}
-                        
-                        {item.extras && item.extras.length > 0 && (
-                          <Text style={styles.extras} numberOfLines={2}>
-                            Extras: {item.extras.map(extra => extra.name).join(', ')}
-                          </Text>
-                        )}
-                        
-                        {item.couponCode && (
-                          <Text style={styles.couponApplied}>
-                            Coupon appliqué: -{item.couponDiscount}%
-                          </Text>
-                        )}
-                        
-
-                        <View style={styles.itemFooter}>
-                          <View style={styles.quantityControls}>
-                            <TouchableOpacity 
-                              style={styles.quantityControlButton}
-                              onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                            >
-                              <Minus size={16} color="#333" />
-                            </TouchableOpacity>
-                            <Text style={styles.quantityText}>{item.quantity}</Text>
-                            <TouchableOpacity 
-                              style={styles.quantityControlButton}
-                              onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                            >
-                              <Plus size={16} color="#333" />
-                            </TouchableOpacity>
-                          </View>
-                          <Text style={styles.itemPrice}>
-                            {item.totalPrice.toLocaleString()} pts
+                          <Text style={styles.cartHeaderTotalFcfa}>
+                            {cartTotal.toLocaleString()} FCFA
                           </Text>
                         </View>
+                        {isCartExpanded ? (
+                          <ChevronUp size={20} color="#666" />
+                        ) : (
+                          <ChevronDown size={20} color="#666" />
+                        )}
                       </View>
                     </View>
-                  ))}
+                  </TouchableOpacity>
+
+                  {/* Liste des articles - Visible seulement si déployée */}
+                  {isCartExpanded && (
+                    <View style={styles.cartItemsContainer}>
+                      {cartItems.map((item) => (
+                        <View key={item.id} style={styles.orderItem}>
+                          <Image source={{ uri: item.productImage }} style={styles.itemImage} />
+                          
+                          <View style={styles.itemDetails}>
+                            <Text style={styles.itemName}>{item.productName}</Text>
+                            <Text style={styles.providerName}>{item.providerName}</Text>
+                            
+                            {item.customizations && item.customizations.length > 0 && (
+                              <Text style={styles.customizations} numberOfLines={2}>
+                                {formatCustomizations(item.customizations)}
+                              </Text>
+                            )}
+                            
+                            {item.extras && item.extras.length > 0 && (
+                              <Text style={styles.extras} numberOfLines={2}>
+                                Extras: {item.extras.map(extra => extra.name).join(', ')}
+                              </Text>
+                            )}
+                            
+                            {item.couponCode && item.couponDiscount && (
+                              <Text style={styles.couponApplied}>
+                                Coupon appliqué: -{Math.round((item.basePrice * item.quantity * item.couponDiscount) / 100).toLocaleString()} FCFA ({item.couponDiscount}%)
+                              </Text>
+                            )}
+                            
+
+                            <View style={styles.itemFooter}>
+                              <View style={styles.quantityControls}>
+                                <TouchableOpacity 
+                                  style={styles.quantityControlButton}
+                                  onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                                >
+                                  <Minus size={16} color="#333" />
+                                </TouchableOpacity>
+                                <Text style={styles.quantityText}>{item.quantity}</Text>
+                                <TouchableOpacity 
+                                  style={styles.quantityControlButton}
+                                  onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                                >
+                                  <Plus size={16} color="#333" />
+                                </TouchableOpacity>
+                              </View>
+                              <View style={styles.itemPriceContainer}>
+                                <Text style={styles.itemPrice}>
+                                  {fcfaToPoints(item.totalPrice).toFixed(2)} pts
+                                </Text>
+                                <Text style={styles.itemPriceFcfa}>
+                                  {item.totalPrice.toLocaleString()} FCFA
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
                 {/* Méthode de paiement */}
@@ -517,8 +574,8 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     {globalDiscountPercentage > 0 && (
                       <Text style={styles.originalPrice}>
                         {selectedPayment === 'points' 
-                          ? `${originalTotal.toLocaleString()} pts`
-                          : `${pointsToFcfa(originalTotal).toLocaleString()} FCFA`
+                          ? `${fcfaToPoints(originalTotal).toFixed(2)} pts`
+                          : `${originalTotal.toLocaleString()} FCFA`
                         }
                       </Text>
                     )}
@@ -528,10 +585,7 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                     {globalDiscountPercentage > 0 && (
                       <View style={styles.discountRow}>
                         <Text style={styles.discountText}>
-                          Économie: {selectedPayment === 'points' 
-                            ? `${(originalTotal - discountedTotal).toLocaleString()} pts`
-                            : `${pointsToFcfa(originalTotal - discountedTotal).toLocaleString()} FCFA`
-                          }
+                          Économie: {(originalTotal - discountedTotal).toLocaleString()} FCFA
                         </Text>
                       </View>
                     )}
@@ -688,6 +742,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#00B14F',
+  },
+  itemPriceContainer: {
+    alignItems: 'flex-end',
+  },
+  itemPriceFcfa: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
   },
   paymentMethod: {
     flexDirection: 'row',
@@ -916,5 +979,102 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'right',
     marginTop: 2,
+  },
+  cartHeaderSection: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  cartHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  cartHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  cartHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cartHeaderTotal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00B14F',
+  },
+  cartHeaderTotalContainer: {
+    alignItems: 'flex-end',
+    marginRight: 8,
+  },
+  cartHeaderTotalFcfa: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 1,
+  },
+  cartItemsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingVertical: 8,
+  },
+  mapContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    marginBottom: 15,
+  },
+  mapPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#e0e0e0',
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapMarker: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+  },
+  markerDot: {
+    width: 20,
+    height: 20,
+    backgroundColor: '#000',
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  mapButton: {
+    position: 'absolute',
+    bottom: 15,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
   },
 });

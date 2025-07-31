@@ -14,6 +14,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useCoupon } from '@/contexts/CouponContext';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import { eventService, APP_EVENTS } from '@/utils/eventService';
+import { fcfaToPoints } from '@/utils/pointsConversion';
 import CouponDisplayModal from './CouponDisplayModal';
 
 interface CartModalProps {
@@ -284,7 +285,7 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
                   )}
                   
                   <Text style={styles.itemPrice}>
-                    {item.totalPrice.toLocaleString()} pts
+                    {fcfaToPoints(item.totalPrice).toFixed(2)} pts
                   </Text>
                 </View>
 
@@ -315,16 +316,21 @@ export default function CartModal({ visible: propsVisible, onClose, onCheckout }
               {globalDiscountPercentage > 0 ? (
                 <>
                   <Text style={styles.originalPrice}>
-                    {cartTotal.toLocaleString()} pts
+                    {fcfaToPoints(cartTotal).toFixed(2)} pts
                   </Text>
                   <Text style={styles.totalAmount}>
-                    {Math.round(cartTotal * (1 - globalDiscountPercentage / 100)).toLocaleString()} pts
+                    {fcfaToPoints(Math.round(cartTotal * (1 - globalDiscountPercentage / 100))).toFixed(2)} pts
                   </Text>
-                  <Text style={styles.discountTag}>-{globalDiscountPercentage}%</Text>
+                  <View style={styles.discountInfo}>
+                    <Text style={styles.discountTag}>-{globalDiscountPercentage}%</Text>
+                    <Text style={styles.discountAmount}>
+                      Économie: -{Math.round(cartTotal * (globalDiscountPercentage / 100))} FCFA
+                    </Text>
+                  </View>
                 </>
               ) : (
                 <Text style={styles.totalAmount}>
-                  {cartTotal.toLocaleString()} pts
+                  {fcfaToPoints(cartTotal).toFixed(2)} pts
                 </Text>
               )}
             </View>
@@ -499,6 +505,16 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     overflow: 'hidden',
   },
+  discountInfo: {
+    alignItems: 'flex-end',
+    marginTop: 5,
+  },
+  discountAmount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#00B14F',
+    marginTop: 2,
+  },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -525,7 +541,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     borderRadius: 12,
     gap: 8,
   },

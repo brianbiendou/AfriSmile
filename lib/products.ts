@@ -125,36 +125,36 @@ const getMockUnsoldProducts = () => {
       id: 'unsold-1',
       name: 'Thiéboudiènne',
       description: 'Plat traditionnel sénégalais avec riz et poisson',
-      original_price: 64, // 5000 FCFA en nouveaux points
-      unsold_price: 43,   // 33% de réduction
+      original_price: 7050,  // Prix original en FCFA
+      unsold_price: 3525,   // = 45 pts après réduction de 50%
       image_url: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
       unsold_until: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2h
       category: 'Invendus',
-      discount_percentage: 33,
+      discount_percentage: 50,
       quantity_remaining: 3
     },
     {
       id: 'unsold-2', 
       name: 'Yassa Poulet',
       description: 'Poulet mariné aux oignons et citron',
-      original_price: 51, // 4000 FCFA en nouveaux points
-      unsold_price: 31,   // 40% de réduction
+      original_price: 6270,  // Prix original en FCFA
+      unsold_price: 3760,   // = 48 pts après réduction de 40%
       image_url: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
       unsold_until: new Date(now.getTime() + 1.5 * 60 * 60 * 1000).toISOString(), // 1.5h
       category: 'Invendus',
-      discount_percentage: 40,
+      discount_percentage: 40, // 40% de réduction
       quantity_remaining: 2
     },
     {
       id: 'unsold-3',
       name: 'Attieké Poisson',
       description: 'Attieké avec poisson grillé',
-      original_price: 38,  // 3000 FCFA en nouveaux points
-      unsold_price: 27,    // 29% de réduction
+      original_price: 6270,  // Prix original en FCFA
+      unsold_price: 3135,   // = 40 pts après réduction de 50%
       image_url: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
       unsold_until: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(), // 3h
       category: 'Invendus',
-      discount_percentage: 29,
+      discount_percentage: 50, // 50% de réduction
       quantity_remaining: 5
     }
   ];

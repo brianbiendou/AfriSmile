@@ -7,10 +7,14 @@ import {
   ScrollView,
   Image,
   Animated,
+  Dimensions,
 } from 'react-native';
-import { X, Plus, Minus, ShoppingCart } from 'lucide-react-native';
+import { X, Plus, Minus, ShoppingCart, Check } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
+import { fcfaToPoints } from '@/utils/pointsConversion';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface Product {
   id: string;
@@ -39,7 +43,7 @@ interface ProductCustomizationModalProps {
   onClose: () => void;
   product: Product | null;
   onAddToCart: (product: Product, customizations: any[], quantity: number, totalPrice: number) => void;
-  fullScreen?: boolean; // Propriété optionnelle pour afficher en plein écran
+  fullScreen?: boolean;
 }
 
 const mockCustomizations: Customization[] = [
@@ -50,9 +54,9 @@ const mockCustomizations: Customization[] = [
     maxSelections: 1,
     options: [
       { id: '1a', name: 'Riz blanc', price: 0, selected: true },
-      { id: '1b', name: 'Attiéké', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
-      { id: '1c', name: 'Foutou', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
-      { id: '1d', name: 'Placali', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '1b', name: 'Attiéké', price: 100, selected: false }, // FCFA
+      { id: '1c', name: 'Foutou', price: 100, selected: false }, // FCFA
+      { id: '1d', name: 'Placali', price: 100, selected: false }, // FCFA
     ]
   },
   {
@@ -63,7 +67,7 @@ const mockCustomizations: Customization[] = [
     options: [
       { id: '2a', name: 'Sauce graine', price: 0, selected: true },
       { id: '2b', name: 'Sauce claire', price: 0, selected: false },
-      { id: '2c', name: 'Sauce arachide', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
+      { id: '2c', name: 'Sauce arachide', price: 100, selected: false }, // FCFA
       { id: '2d', name: 'Sauce tomate', price: 0, selected: false },
     ]
   },
@@ -73,10 +77,10 @@ const mockCustomizations: Customization[] = [
     required: false,
     maxSelections: 3,
     options: [
-      { id: '3a', name: 'Poisson fumé', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
-      { id: '3b', name: 'Viande de bœuf', price: 2.55, selected: false }, // 200 FCFA ÷ 78.359 = 2.55 points
-      { id: '3c', name: 'Poulet', price: 1.28, selected: false }, // 100 FCFA ÷ 78.359 = 1.28 points
-      { id: '3d', name: 'Crevettes', price: 2.55, selected: false }, // 200 FCFA ÷ 78.359 = 2.55 points
+      { id: '3a', name: 'Poisson fumé', price: 100, selected: false }, // FCFA
+      { id: '3b', name: 'Viande de bœuf', price: 200, selected: false }, // FCFA
+      { id: '3c', name: 'Poulet', price: 100, selected: false }, // FCFA
+      { id: '3d', name: 'Crevettes', price: 200, selected: false }, // FCFA
     ]
   },
   {
@@ -265,11 +269,7 @@ export default function ProductCustomizationModal({
       animationType="none"
       onRequestClose={handleClose}
     >
-      <TouchableOpacity 
-        style={responsiveStyles.overlay} 
-        activeOpacity={1} 
-        onPress={fullScreen ? undefined : handleClose} // Ne ferme pas en mode plein écran
-      >
+      <View style={styles.overlay}>
         <Animated.View 
           style={[
             styles.container,
@@ -279,42 +279,43 @@ export default function ProductCustomizationModal({
                 { scale: scaleAnim },
                 { translateY: slideAnim }
               ],
-            },
-            // Appliquer les styles responsifs en fonction de fullScreen
-            {
-              width: responsiveStyles.container.width as any, // Conversion pour éviter l'erreur de type
-              maxWidth: responsiveStyles.container.maxWidth,
-              borderRadius: responsiveStyles.container.borderRadius,
-              ...(fullScreen && { height: '100%' }) // Ajouter height: 100% si fullScreen est true
             }
           ]}
-          onStartShouldSetResponder={() => true}
-          onResponderGrant={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <View style={responsiveStyles.header}>
-            <TouchableOpacity onPress={handleClose} style={responsiveStyles.closeButton}>
-              <X size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Product Info */}
-          <View style={styles.productSection}>
-            <Image source={{ uri: product.image }} style={styles.productImage} />
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productDescription}>{product.description}</Text>
-              <Text style={styles.productPrice}>{product.points.toLocaleString()} pts</Text>
+          {/* Header avec image de fond */}
+          <View style={styles.headerSection}>
+            <Image source={{ uri: product.image }} style={styles.backgroundImage} />
+            <View style={styles.headerOverlay}>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <X size={24} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.productHeader}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productDescription}>{product.description}</Text>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.productPrice}>{product.points} pts</Text>
+                  <View style={styles.priceBadge}>
+                    <Text style={styles.priceBadgeText}>Prix réduit</Text>
+                  </View>
+                </View>
+              </View>
             </View>
           </View>
 
-          <ScrollView style={styles.customizationSection} showsVerticalScrollIndicator={false}>
+          {/* Contenu principal */}
+          <ScrollView style={styles.contentSection} showsVerticalScrollIndicator={false}>
             {customizations.map((category) => (
-              <View key={category.id} style={styles.categoryContainer}>
+              <View key={category.id} style={styles.categoryCard}>
                 <View style={styles.categoryHeader}>
                   <Text style={styles.categoryTitle}>{category.name}</Text>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>
+                  <View style={[
+                    styles.categoryBadge,
+                    { backgroundColor: category.required ? '#FFF3CD' : '#E8F5E8' }
+                  ]}>
+                    <Text style={[
+                      styles.categoryBadgeText,
+                      { color: category.required ? '#B8860B' : '#4CAF50' }
+                    ]}>
                       {category.required ? 'Obligatoire' : 'Optionnel'}
                     </Text>
                   </View>
@@ -322,79 +323,86 @@ export default function ProductCustomizationModal({
                 
                 {category.maxSelections > 1 && (
                   <Text style={styles.categorySubtitle}>
-                    Choisissez jusqu'à {category.maxSelections} option{category.maxSelections > 1 ? 's' : ''}
+                    Sélectionnez jusqu'à {category.maxSelections} option{category.maxSelections > 1 ? 's' : ''}
                   </Text>
                 )}
 
-                {category.options.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.optionItem,
-                      option.selected && styles.optionItemSelected
-                    ]}
-                    onPress={() => handleOptionToggle(category.id, option.id)}
-                  >
-                    <View style={styles.optionInfo}>
-                      <Text style={[
-                        styles.optionName,
-                        option.selected && styles.optionNameSelected
-                      ]}>
-                        {option.name}
-                      </Text>
-                      {option.price > 0 && (
-                        <Text style={styles.optionPrice}>
-                          +{option.price.toLocaleString()} FCFA
-                        </Text>
-                      )}
-                    </View>
-                    <View style={[
-                      styles.optionCheckbox,
-                      option.selected && styles.optionCheckboxSelected
-                    ]}>
-                      {option.selected && <View style={styles.optionCheckboxInner} />}
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                <View style={styles.optionsGrid}>
+                  {category.options.map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.optionCard,
+                        option.selected && styles.optionCardSelected
+                      ]}
+                      onPress={() => handleOptionToggle(category.id, option.id)}
+                    >
+                      <View style={styles.optionContent}>
+                        <View style={styles.optionLeft}>
+                          <Text style={[
+                            styles.optionName,
+                            option.selected && styles.optionNameSelected
+                          ]}>
+                            {option.name}
+                          </Text>
+                          {option.price > 0 && (
+                            <Text style={styles.optionPrice}>
+                              +{fcfaToPoints(option.price).toFixed(1)} pts
+                            </Text>
+                          )}
+                        </View>
+                        <View style={[
+                          styles.selectionIndicator,
+                          option.selected && styles.selectionIndicatorActive
+                        ]}>
+                          {option.selected && <Check size={16} color="#fff" />}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             ))}
           </ScrollView>
 
-          {/* Quantity and Add to Cart */}
+          {/* Footer moderne */}
           <View style={styles.footer}>
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
-                onPress={() => quantity > 1 && setQuantity(quantity - 1)}
-                disabled={quantity <= 1}
-              >
-                <Minus size={20} color={quantity <= 1 ? "#ccc" : "#000"} />
-              </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => setQuantity(quantity + 1)}
-              >
-                <Plus size={20} color="#000" />
-              </TouchableOpacity>
+            <View style={styles.quantitySection}>
+              <Text style={styles.quantityLabel}>Quantité</Text>
+              <View style={styles.quantityControls}>
+                <TouchableOpacity
+                  style={[styles.quantityBtn, quantity <= 1 && styles.quantityBtnDisabled]}
+                  onPress={() => quantity > 1 && setQuantity(quantity - 1)}
+                  disabled={quantity <= 1}
+                >
+                  <Minus size={18} color={quantity <= 1 ? "#ccc" : "#000"} />
+                </TouchableOpacity>
+                <Text style={styles.quantityValue}>{quantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityBtn}
+                  onPress={() => setQuantity(quantity + 1)}
+                >
+                  <Plus size={18} color="#000" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
               style={[
-                styles.addToCartButton,
-                (!canAddToCart() || isAdding) && styles.addToCartButtonDisabled
+                styles.addButton,
+                (!canAddToCart() || isAdding) && styles.addButtonDisabled
               ]}
               onPress={handleAddToCart}
               disabled={!canAddToCart() || isAdding}
             >
               <ShoppingCart size={20} color="#fff" />
-              <Text style={styles.addToCartText}>
-                {isAdding ? 'Ajout...' : `Ajouter • ${calculateTotalPrice().toLocaleString()} pts`}
+              <Text style={styles.addButtonText}>
+                {isAdding ? 'Ajout...' : `Ajouter ${calculateTotalPrice()} pts`}
               </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
@@ -402,194 +410,262 @@ export default function ProductCustomizationModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  container: {
+    width: screenWidth * 0.95,
+    maxHeight: screenHeight * 0.9,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  
+  // Header avec image de fond
+  headerSection: {
+    height: 180, // Réduire la hauteur pour mobile
+    position: 'relative',
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  headerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 16, // Réduire le padding
+    justifyContent: 'space-between',
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    width: 36, // Réduire la taille
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  container: {
-    width: '95%',
-    maxWidth: 400,
-    maxHeight: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  closeButton: {
-    padding: 5,
-  },
-  productSection: {
-    flexDirection: 'row',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 15,
-  },
-  productInfo: {
-    flex: 1,
+  productHeader: {
+    marginTop: 'auto',
   },
   productName: {
-    fontSize: 18,
+    fontSize: 20, // Réduire pour mobile
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 5,
+    color: '#fff',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   productDescription: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 14, // Réduire pour mobile
+    color: '#f0f0f0',
     marginBottom: 8,
-    lineHeight: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 18, // Réduire pour mobile
     fontWeight: 'bold',
-    color: '#00B14F',
+    color: '#4CAF50',
+    marginRight: 10,
   },
-  customizationSection: {
+  priceBadge: {
+    backgroundColor: 'rgba(255, 193, 7, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  priceBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#000',
+  },
+
+  // Contenu principal
+  contentSection: {
     flex: 1,
-    padding: 20,
+    padding: 16, // Réduire le padding
+    maxHeight: screenHeight * 0.4, // Limiter la hauteur pour laisser place aux boutons
   },
-  categoryContainer: {
-    marginBottom: 25,
+  categoryCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12, // Réduire les coins
+    padding: 16, // Réduire le padding
+    marginBottom: 12, // Réduire l'espacement
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8, // Réduire l'espacement
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 16, // Réduire pour mobile
     fontWeight: 'bold',
-    color: '#000',
+    color: '#212529',
   },
   categoryBadge: {
-    backgroundColor: '#F0F9F4',
-    paddingHorizontal: 8,
+    paddingHorizontal: 8, // Réduire le padding
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   categoryBadgeText: {
-    fontSize: 12,
-    color: '#00B14F',
+    fontSize: 10, // Réduire la taille
     fontWeight: '600',
   },
   categorySubtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12, // Réduire pour mobile
+    color: '#6c757d',
     marginBottom: 12,
+    fontStyle: 'italic',
   },
-  optionItem: {
+  optionsGrid: {
+    gap: 8, // Réduire l'espacement
+  },
+  optionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10, // Réduire les coins
+    padding: 12, // Réduire le padding
+    borderWidth: 2,
+    borderColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, // Réduire l'ombre
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  optionCardSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#f8fff8',
+  },
+  optionContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    marginBottom: 8,
   },
-  optionItemSelected: {
-    backgroundColor: '#F0F9F4',
-    borderWidth: 1,
-    borderColor: '#00B14F',
-  },
-  optionInfo: {
+  optionLeft: {
     flex: 1,
   },
   optionName: {
-    fontSize: 14,
-    color: '#000',
-    fontWeight: '500',
+    fontSize: 14, // Réduire pour mobile
+    fontWeight: '600',
+    color: '#212529',
+    marginBottom: 2, // Réduire l'espacement
   },
   optionNameSelected: {
-    color: '#00B14F',
-    fontWeight: '600',
+    color: '#4CAF50',
   },
   optionPrice: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 12, // Réduire pour mobile
+    fontWeight: '600',
+    color: '#4CAF50',
   },
-  optionCheckbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionCheckboxSelected: {
-    borderColor: '#00B14F',
-    backgroundColor: '#00B14F',
-  },
-  optionCheckboxInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F5F5F5',
-    gap: 15,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+  selectionIndicator: {
+    width: 24, // Réduire la taille
+    height: 24,
     borderRadius: 12,
-    padding: 5,
-  },
-  quantityButton: {
-    width: 35,
-    height: 35,
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#dee2e6',
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quantityButtonDisabled: {
-    backgroundColor: '#F5F5F5',
+  selectionIndicatorActive: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#4CAF50',
   },
-  quantityText: {
+
+  // Footer fixe et compact
+  footer: {
+    padding: 16, // Réduire le padding
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  quantitySection: {
+    marginBottom: 12, // Réduire l'espacement
+    alignItems: 'center',
+  },
+  quantityLabel: {
+    fontSize: 14, // Réduire la taille
+    fontWeight: '600',
+    color: '#212529',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    padding: 6, // Réduire le padding
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  quantityBtn: {
+    width: 36, // Réduire la taille
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  quantityBtnDisabled: {
+    backgroundColor: '#e9ecef',
+    borderColor: '#ced4da',
+  },
+  quantityValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
-    marginHorizontal: 15,
+    color: '#212529',
+    marginHorizontal: 20, // Réduire l'espacement
+    minWidth: 25,
+    textAlign: 'center',
   },
-  addToCartButton: {
-    flex: 1,
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#000',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14, // Réduire le padding
+    borderRadius: 10,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  addToCartButtonDisabled: {
-    backgroundColor: '#ccc',
+  addButtonDisabled: {
+    backgroundColor: '#ced4da',
   },
-  addToCartText: {
+  addButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 16, // Réduire la taille
     fontWeight: 'bold',
   },
 });

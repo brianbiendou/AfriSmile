@@ -14,7 +14,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Plus, Minus, ShoppingCart, Star, Check } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCoupon } from '@/contexts/CouponContext';
+import { fcfaToPoints } from '@/utils/pointsConversion';
 import { ExtraItem } from '@/data/extras';
 
 const { width } = Dimensions.get('window');
@@ -48,13 +48,6 @@ interface Product {
   customizations: CustomizationCategory[];
 }
 
-interface SimpleCoupon {
-  code: string;
-  description: string;
-  type: 'percentage' | 'fixed';
-  value: number;
-}
-
 export default function ProductCustomizationScreen() {
   const { productId } = useLocalSearchParams<{ productId: string }>();
   const { addToCart } = useCart();
@@ -63,38 +56,124 @@ export default function ProductCustomizationScreen() {
   const [quantity, setQuantity] = useState(1);
   const [customizations, setCustomizations] = useState<CustomizationCategory[]>([]);
   const [selectedExtras, setSelectedExtras] = useState<ExtraItem[]>([]);
-  const [selectedCoupon, setSelectedCoupon] = useState<string | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
 
-  // Coupons disponibles (version simplifiée)
-  const availableCoupons: SimpleCoupon[] = [
-    { code: 'FIRST10', description: 'Réduction de 10% pour votre première commande', type: 'percentage', value: 10 },
-    { code: 'SAVE500', description: 'Économisez 500 FCFA sur votre commande', type: 'fixed', value: 500 },
-    { code: 'WELCOME15', description: 'Bienvenue ! 15% de réduction', type: 'percentage', value: 15 },
-  ];
-
-  // Données d'exemple pour le produit (à remplacer par des données réelles)
-  const product: Product = {
-    id: productId!,
-    name: 'Attiéké Poisson',
-    description: 'Attiéké traditionnel servi avec du poisson braisé et des légumes frais. Un plat authentique de la cuisine ivoirienne.',
-    basePrice: 2500,
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
-    category: 'Plats principaux',
-    available: true,
-    providerId: '1',
-    providerName: 'Chez Tante Marie',
-    customizations: [
+  // Fonction pour récupérer les données du produit par ID
+  const getProductData = (id: string): Product => {
+    // Produits en vedette
+    const featuredProducts = [
       {
-        id: 'fish_type',
-        name: 'Type de poisson',
-        required: true,
-        maxSelections: 1,
-        options: [
-          { id: 'tilapia', name: 'Tilapia grillé', price: 0, selected: true },
-          { id: 'capitaine', name: 'Capitaine braisé', price: 500, selected: false },
-          { id: 'machoiron', name: 'Machoiron fumé', price: 300, selected: false },
-        ]
+        id: 'menu-kebab',
+        name: 'MENU KEBAB',
+        description: 'Menu complet avec kebab, frites et boisson',
+        basePrice: 12500,
+        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        category: 'Menus',
       },
+      {
+        id: 'menu-pain',
+        name: 'MENU PAIN ROND + 1 PAIN ROND SEUL',
+        description: 'Pain rond traditionnel avec accompagnements',
+        basePrice: 17900,
+        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        category: 'Menus',
+      },
+      {
+        id: 'menu-naar',
+        name: 'MENU NAAR',
+        description: 'Menu spécialité maison avec viande grillée',
+        basePrice: 12900,
+        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        category: 'Menus',
+      },
+    ];
+
+    // Offres spéciales
+    const specialOffers = [
+      {
+        id: 'bebe-tacos',
+        name: 'BEBE TACOS KEBAB',
+        description: 'Tacos onctueux viande kebab, sauce blanche, sauce maquis fait maison',
+        basePrice: 12900,
+        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        category: 'Offres Spéciales',
+      },
+      {
+        id: 'wings',
+        name: '2 WINGS FAIT MAISON',
+        description: 'Ailes de poulet frit fait maison',
+        basePrice: 3900,
+        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        category: 'Offres Spéciales',
+      },
+    ];
+
+    // Chercher dans les produits vedette et offres spéciales
+    const allProducts = [...featuredProducts, ...specialOffers];
+    const foundProduct = allProducts.find(p => p.id === id);
+
+    if (foundProduct) {
+      return {
+        id: foundProduct.id,
+        name: foundProduct.name,
+        description: foundProduct.description,
+        basePrice: foundProduct.basePrice,
+        image: foundProduct.image,
+        category: foundProduct.category,
+        available: true,
+        providerId: '1',
+        providerName: "K'Labraise",
+        customizations: getCustomizationsForProduct(id)
+      };
+    }
+
+    // Produit par défaut si non trouvé
+    return {
+      id: id,
+      name: 'Attiéké Poisson',
+      description: 'Attiéké traditionnel servi avec du poisson braisé et des légumes frais.',
+      basePrice: 2500,
+      image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+      category: 'Plats principaux',
+      available: true,
+      providerId: '1',
+      providerName: 'Chez Tante Marie',
+      customizations: getCustomizationsForProduct(id)
+    };
+  };
+
+  // Fonction pour obtenir les personnalisations selon le produit
+  const getCustomizationsForProduct = (productId: string): CustomizationCategory[] => {
+    // Personnalisations pour les menus kebab/tacos
+    if (productId.includes('kebab') || productId.includes('tacos')) {
+      return [
+        {
+          id: 'sauce',
+          name: 'Sauce',
+          required: true,
+          maxSelections: 1,
+          options: [
+            { id: 'blanche', name: 'Sauce blanche', price: 0, selected: true },
+            { id: 'maquis', name: 'Sauce maquis', price: 0, selected: false },
+            { id: 'harissa', name: 'Sauce harissa', price: 0, selected: false },
+          ]
+        },
+        {
+          id: 'supplement',
+          name: 'Suppléments',
+          required: false,
+          maxSelections: 3,
+          options: [
+            { id: 'fromage', name: 'Fromage', price: 300, selected: false },
+            { id: 'double_viande', name: 'Double viande', price: 800, selected: false },
+            { id: 'legumes', name: 'Légumes extra', price: 200, selected: false },
+          ]
+        }
+      ];
+    }
+
+    // Personnalisations pour les autres plats
+    return [
       {
         id: 'spice_level',
         name: 'Niveau de piment',
@@ -104,23 +183,39 @@ export default function ProductCustomizationScreen() {
           { id: 'mild', name: 'Doux', price: 0, selected: true },
           { id: 'medium', name: 'Moyen', price: 0, selected: false },
           { id: 'spicy', name: 'Pimenté', price: 0, selected: false },
-          { id: 'very_spicy', name: 'Très pimenté', price: 0, selected: false },
         ]
       },
       {
-        id: 'vegetables',
-        name: 'Légumes supplémentaires',
+        id: 'extras',
+        name: 'Accompagnements supplémentaires',
         required: false,
-        maxSelections: 3,
+        maxSelections: 2,
         options: [
-          { id: 'tomato', name: 'Tomates', price: 200, selected: false },
-          { id: 'onion', name: 'Oignons', price: 150, selected: false },
-          { id: 'pepper', name: 'Poivrons', price: 200, selected: false },
-          { id: 'carrot', name: 'Carottes', price: 150, selected: false },
+          { id: 'rice', name: 'Riz supplémentaire', price: 300, selected: false },
+          { id: 'vegetables', name: 'Légumes sautés', price: 400, selected: false },
         ]
       }
-    ]
+    ];
   };
+
+  useEffect(() => {
+    if (productId) {
+      const productData = getProductData(productId);
+      setProduct(productData);
+      setCustomizations(productData.customizations);
+    }
+  }, [productId]);
+
+  // Si le produit n'est pas encore chargé
+  if (!product) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Chargement...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Extras disponibles
   const availableExtras: ExtraItem[] = [
@@ -149,10 +244,6 @@ export default function ProductCustomizationScreen() {
       category: 'accompagnements'
     },
   ];
-
-  useEffect(() => {
-    setCustomizations(product.customizations);
-  }, []);
 
   const handleCustomizationChange = (categoryId: string, optionId: string) => {
     setCustomizations(prev => prev.map(category => {
@@ -211,16 +302,6 @@ export default function ProductCustomizationScreen() {
       total += extra.price;
     });
 
-    // Appliquer le coupon si sélectionné
-    const coupon = availableCoupons.find((c: SimpleCoupon) => c.code === selectedCoupon);
-    if (coupon) {
-      if (coupon.type === 'percentage') {
-        total = total * (1 - coupon.value / 100);
-      } else {
-        total = Math.max(0, total - coupon.value);
-      }
-    }
-
     return total * quantity;
   };
 
@@ -254,8 +335,6 @@ export default function ProductCustomizationScreen() {
         }))
     }));
 
-    const coupon = availableCoupons.find((c: SimpleCoupon) => c.code === selectedCoupon);
-
     const cartItem = {
       productId: product.id,
       productName: product.name,
@@ -264,8 +343,6 @@ export default function ProductCustomizationScreen() {
       quantity: quantity,
       customizations: customizationsForCart,
       extras: selectedExtras,
-      couponCode: selectedCoupon || undefined,
-      couponDiscount: coupon ? coupon.value : undefined,
       totalPrice: calculateTotalPrice(),
       providerId: product.providerId,
       providerName: product.providerName,
@@ -273,33 +350,19 @@ export default function ProductCustomizationScreen() {
 
     const itemId = addToCart(cartItem);
     
-    Alert.alert(
-      'Ajouté au panier',
-      `${product.name} a été ajouté à votre panier.`,
-      [
-        { text: 'Continuer les achats', onPress: () => router.back() },
-        { text: 'Voir le panier', onPress: () => {
-          router.back();
-          // Navigate to cart modal (vous devrez ajuster selon votre navigation)
-        }},
-      ]
-    );
-  };
-
-  const getCouponDiscount = (couponCode: string) => {
-    const coupon = availableCoupons.find((c: SimpleCoupon) => c.code === couponCode);
-    if (!coupon) return 0;
-    
-    const baseTotal = product.basePrice + 
-      customizations.reduce((sum, cat) => 
-        sum + cat.options.filter(opt => opt.selected).reduce((optSum, opt) => optSum + opt.price, 0), 0) +
-      selectedExtras.reduce((sum, extra) => sum + extra.price, 0);
-
-    if (coupon.type === 'percentage') {
-      return baseTotal * (coupon.value / 100);
-    } else {
-      return Math.min(coupon.value, baseTotal);
-    }
+    // Naviguer directement vers la page d'extras
+    router.push({
+      pathname: '/extras/[productId]',
+      params: {
+        productId: product.id,
+        productName: product.name,
+        productImage: product.image,
+        basePrice: product.basePrice.toString(),
+        quantity: quantity.toString(),
+        providerId: product.providerId,
+        providerName: product.providerName,
+      }
+    });
   };
 
   return (
@@ -320,7 +383,10 @@ export default function ProductCustomizationScreen() {
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.productDescription}>{product.description}</Text>
-            <Text style={styles.basePrice}>Prix de base: {product.basePrice} FCFA</Text>
+            <View style={styles.basePriceContainer}>
+              <Text style={styles.basePrice}>{fcfaToPoints(product.basePrice).toFixed(2)} pts</Text>
+              <Text style={styles.basePriceFcfa}>{product.basePrice} FCFA</Text>
+            </View>
           </View>
         </View>
 
@@ -347,9 +413,14 @@ export default function ProductCustomizationScreen() {
                     {option.name}
                   </Text>
                   {option.price > 0 && (
-                    <Text style={[styles.optionPrice, option.selected && styles.selectedText]}>
-                      +{option.price} FCFA
-                    </Text>
+                    <View style={styles.priceContainer}>
+                      <Text style={[styles.optionPricePoints, option.selected && styles.selectedText]}>
+                        +{fcfaToPoints(option.price).toFixed(2)} pts
+                      </Text>
+                      <Text style={[styles.optionPriceFcfa, option.selected && styles.selectedText]}>
+                        +{option.price} FCFA
+                      </Text>
+                    </View>
                   )}
                 </View>
                 <View style={[styles.checkBox, option.selected && styles.checked]}>
@@ -378,9 +449,14 @@ export default function ProductCustomizationScreen() {
                   <Text style={[styles.extraName, isSelected && styles.selectedText]}>
                     {extra.name}
                   </Text>
-                  <Text style={[styles.extraPrice, isSelected && styles.selectedText]}>
-                    +{extra.price} FCFA
-                  </Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={[styles.extraPricePoints, isSelected && styles.selectedText]}>
+                      +{fcfaToPoints(extra.price).toFixed(2)} pts
+                    </Text>
+                    <Text style={[styles.extraPriceFcfa, isSelected && styles.selectedText]}>
+                      +{extra.price} FCFA
+                    </Text>
+                  </View>
                 </View>
                 <View style={[styles.checkBox, isSelected && styles.checked]}>
                   {isSelected && <Check size={16} color="#fff" />}
@@ -389,42 +465,6 @@ export default function ProductCustomizationScreen() {
             );
           })}
         </View>
-
-        {/* Coupons */}
-        {availableCoupons.length > 0 && (
-          <View style={styles.couponsSection}>
-            <Text style={styles.sectionTitle}>Coupons disponibles</Text>
-            {availableCoupons.map((coupon: SimpleCoupon) => {
-              const isSelected = selectedCoupon === coupon.code;
-              const discount = isSelected ? getCouponDiscount(coupon.code) : 0;
-              
-              return (
-                <TouchableOpacity
-                  key={coupon.code}
-                  style={[styles.couponItem, isSelected && styles.selectedCoupon]}
-                  onPress={() => setSelectedCoupon(isSelected ? null : coupon.code)}
-                >
-                  <View style={styles.couponInfo}>
-                    <Text style={[styles.couponCode, isSelected && styles.selectedText]}>
-                      {coupon.code}
-                    </Text>
-                    <Text style={[styles.couponDescription, isSelected && styles.selectedText]}>
-                      {coupon.description}
-                    </Text>
-                    {isSelected && discount > 0 && (
-                      <Text style={styles.discountAmount}>
-                        Économie: -{discount.toFixed(0)} FCFA
-                      </Text>
-                    )}
-                  </View>
-                  <View style={[styles.checkBox, isSelected && styles.checked]}>
-                    {isSelected && <Check size={16} color="#fff" />}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
 
         {/* Quantity selector */}
         <View style={styles.quantitySection}>
@@ -454,7 +494,11 @@ export default function ProductCustomizationScreen() {
       <View style={styles.bottomBar}>
         <View style={styles.totalSection}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalPrice}>{calculateTotalPrice().toFixed(0)} FCFA</Text>
+          <Text style={styles.totalPrice}>
+            {fcfaToPoints(calculateTotalPrice()).toFixed(2)} pts 
+            (FCFA: {calculateTotalPrice().toFixed(0)})
+          </Text>
+          <Text style={styles.totalPriceFcfa}>{calculateTotalPrice().toFixed(0)} FCFA</Text>
         </View>
         <TouchableOpacity style={styles.addToCartButton} onPress={addToCartHandler}>
           <ShoppingCart size={20} color="#fff" />
@@ -637,41 +681,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 10,
   },
-  couponItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#FFF3CD',
-    borderColor: '#FFD700',
-    borderWidth: 1,
-  },
-  selectedCoupon: {
-    backgroundColor: '#E8F5E8',
-    borderColor: '#00B14F',
-  },
-  couponInfo: {
-    flex: 1,
-  },
-  couponCode: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#856404',
-  },
-  couponDescription: {
-    fontSize: 14,
-    color: '#6C5A00',
-    marginTop: 2,
-  },
-  discountAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#00B14F',
-    marginTop: 2,
-  },
   quantitySection: {
     backgroundColor: '#fff',
     padding: 20,
@@ -742,5 +751,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  optionPricePoints: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  optionPriceFcfa: {
+    fontSize: 10,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+  extraPricePoints: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  extraPriceFcfa: {
+    fontSize: 10,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+  basePriceContainer: {
+    alignItems: 'flex-start',
+  },
+  basePriceFcfa: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+  totalPriceFcfa: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

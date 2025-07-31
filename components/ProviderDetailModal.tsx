@@ -20,7 +20,6 @@ import { useCart } from '@/contexts/CartContext';
 import LoadingScreen from '@/components/LoadingScreen';
 import ProductCustomizationModal from '@/components/ProductCustomizationModal';
 import ExtrasSelectionModal from '@/components/ExtrasSelectionModal';
-import UnsoldProductsModal from '@/components/UnsoldProductsModal';
 import pricingSystem from '@/utils/pricingSystem';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import { mockExtras } from '@/data/extras';
@@ -86,7 +85,6 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   const [showLoading, setShowLoading] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [showUnsoldProducts, setShowUnsoldProducts] = useState(false);
   const [showExtrasSelection, setShowExtrasSelection] = useState(false);
   const [currentCartItemId, setCurrentCartItemId] = useState<string | null>(null);
   
@@ -173,13 +171,11 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
           
           setShowLoading(false);
           setShowMenu(false);
-          setShowUnsoldProducts(false);
         });
       } catch (error) {
         console.error('Erreur d\'animation (fermeture):', error);
         setShowLoading(false);
         setShowMenu(false);
-        setShowUnsoldProducts(false);
       }
     }
   }, [visible, provider]);
@@ -205,11 +201,12 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   };
 
   const handleShowUnsoldProducts = () => {
-    setShowUnsoldProducts(true);
-  };
-
-  const handleCloseUnsoldProducts = () => {
-    setShowUnsoldProducts(false);
+    // Fermer le modal actuel et naviguer vers la page des invendus
+    onClose();
+    router.push({
+      pathname: '/unsold/[providerId]',
+      params: { providerId: provider?.id || '' }
+    });
   };
 
   const handleProductPress = (product: any) => {
@@ -302,7 +299,6 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
         // Réinitialisation des états
         setShowMenu(false);
         setShowCustomization(false);
-        setShowUnsoldProducts(false);
         setSelectedProduct(null);
         
         // Réinitialisation des animations de manière sécurisée
@@ -692,16 +688,6 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
           setSelectedProduct(null);
         }}
         product={selectedProduct}
-        onAddToCart={handleAddToCart}
-        fullScreen={true} // Activation du mode plein écran
-      />
-
-      {/* Unsold Products Modal */}
-      <UnsoldProductsModal
-        visible={showUnsoldProducts}
-        onClose={handleCloseUnsoldProducts}
-        provider={provider}
-        userPoints={userPoints}
         onAddToCart={handleAddToCart}
         fullScreen={true} // Activation du mode plein écran
       />
