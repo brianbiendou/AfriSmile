@@ -14,7 +14,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUnsoldProducts } from '@/lib/products';
-import { fcfaToPoints } from '@/utils/pointsConversion';
+import { fcfaToPoints, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 interface UnsoldProduct {
   id: string;
@@ -201,15 +202,19 @@ export default function UnsoldProductsScreen() {
                 {fcfaToPoints(product.unsold_price).toFixed(2)} pts
               </Text>
               <Text style={styles.originalPrice}>
-                {fcfaToPoints(product.original_price).toFixed(2)} pts
+                {formatPointsAmount(fcfaToPoints(product.original_price))}
               </Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.currentPriceFcfa}>
-                {product.unsold_price.toLocaleString()} FCFA
+              <Text style={[styles.currentPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                {formatFcfaAmount(product.unsold_price)}
               </Text>
-              <Text style={styles.originalPriceFcfa}>
-                {product.original_price.toLocaleString()} FCFA
+              <Text style={[styles.originalPriceFcfa, getResponsiveTextProps('strikethrough').style]}
+                    numberOfLines={getResponsiveTextProps('strikethrough').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('strikethrough').ellipsizeMode}>
+                {formatFcfaAmount(product.original_price)}
               </Text>
             </View>
           </View>

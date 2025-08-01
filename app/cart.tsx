@@ -15,7 +15,8 @@ import { Stack, router } from 'expo-router';
 import { ArrowLeft, Plus, Minus, ShoppingBag, CreditCard, Calendar, Clock } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
 import { useCoupon } from '@/contexts/CouponContext';
-import { fcfaToPoints, pointsToFcfa } from '@/utils/pointsConversion';
+import { fcfaToPoints, pointsToFcfa, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 export default function CartPage() {
   const { cartItems, cartTotal, updateQuantity, removeFromCart } = useCart();
@@ -181,10 +182,12 @@ export default function CartPage() {
                   
                   <View style={styles.priceContainer}>
                     <Text style={styles.itemPrice}>
-                      {getDisplayPrice(item)} pts
+                      {formatPointsAmount(parseFloat(getDisplayPrice(item)))}
                     </Text>
-                    <Text style={styles.itemPriceFcfa}>
-                      {pointsToFcfa(parseFloat(getDisplayPrice(item))).toLocaleString()} FCFA
+                    <Text style={[styles.itemPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                          numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                      {formatFcfaAmount(pointsToFcfa(parseFloat(getDisplayPrice(item))))}
                     </Text>
                   </View>
                 </View>
@@ -220,34 +223,40 @@ export default function CartPage() {
                 <>
                   <View style={styles.priceRow}>
                     <Text style={styles.originalPrice}>
-                      {correctTotal.toFixed(0)} pts
+                      {formatPointsAmount(correctTotal)}
                     </Text>
-                    <Text style={styles.originalPriceFcfa}>
-                      {pointsToFcfa(correctTotal).toLocaleString()} FCFA
+                    <Text style={[styles.originalPriceFcfa, getResponsiveTextProps('strikethrough').style]}
+                          numberOfLines={getResponsiveTextProps('strikethrough').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('strikethrough').ellipsizeMode}>
+                      {formatFcfaAmount(pointsToFcfa(correctTotal))}
                     </Text>
                   </View>
                   <View style={styles.priceRow}>
                     <Text style={styles.totalAmount}>
-                      {Math.round(correctTotal * (1 - globalDiscountPercentage / 100))} pts
+                      {formatPointsAmount(Math.round(correctTotal * (1 - globalDiscountPercentage / 100)))}
                     </Text>
-                    <Text style={styles.totalAmountFcfa}>
-                      {pointsToFcfa(Math.round(correctTotal * (1 - globalDiscountPercentage / 100))).toLocaleString()} FCFA
+                    <Text style={[styles.totalAmountFcfa, getResponsiveTextProps('total').style]}
+                          numberOfLines={getResponsiveTextProps('total').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('total').ellipsizeMode}>
+                      {formatFcfaAmount(pointsToFcfa(Math.round(correctTotal * (1 - globalDiscountPercentage / 100))))}
                     </Text>
                   </View>
                   <View style={styles.discountInfo}>
                     <Text style={styles.discountTag}>-{globalDiscountPercentage}%</Text>
                     <Text style={styles.discountAmount}>
-                      Économie: -{Math.round(correctTotal * (globalDiscountPercentage / 100))} pts
+                      Économie: -{formatPointsAmount(Math.round(correctTotal * (globalDiscountPercentage / 100)))}
                     </Text>
                   </View>
                 </>
               ) : (
                 <View style={styles.priceRow}>
                   <Text style={styles.totalAmount}>
-                    {correctTotal.toFixed(0)} pts
+                    {formatPointsAmount(correctTotal)}
                   </Text>
-                  <Text style={styles.totalAmountFcfa}>
-                    {pointsToFcfa(correctTotal).toLocaleString()} FCFA
+                  <Text style={[styles.totalAmountFcfa, getResponsiveTextProps('total').style]}
+                        numberOfLines={getResponsiveTextProps('total').numberOfLines}
+                        ellipsizeMode={getResponsiveTextProps('total').ellipsizeMode}>
+                    {formatFcfaAmount(pointsToFcfa(correctTotal))}
                   </Text>
                 </View>
               )}

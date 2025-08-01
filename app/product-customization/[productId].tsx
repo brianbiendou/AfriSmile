@@ -14,10 +14,11 @@ import {
 import { X, Plus, Minus, ShoppingCart, Check, ArrowLeft } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { fcfaToPoints } from '@/utils/pointsConversion';
+import { fcfaToPoints, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
 import { pointsToFcfa } from '@/utils/pointsConversion';
 import { getUnsoldProducts } from '@/lib/products';
 import { useCart } from '@/contexts/CartContext';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -348,8 +349,12 @@ export default function ProductCustomizationPage() {
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Prix du plat :</Text>
             <View style={styles.priceValues}>
-              <Text style={styles.currentPricePoints}>{product.points.toFixed(1)} pts</Text>
-              <Text style={styles.currentPriceFcfa}>({Math.round(pointsToFcfa(product.points))} FCFA)</Text>
+              <Text style={styles.currentPricePoints}>{formatPointsAmount(product.points)}</Text>
+              <Text style={[styles.currentPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                ({formatFcfaAmount(Math.round(pointsToFcfa(product.points)))})
+              </Text>
             </View>
           </View>
           
@@ -361,10 +366,12 @@ export default function ProductCustomizationPage() {
                 <Text style={styles.priceLabel}>Extras :</Text>
                 <View style={styles.priceValues}>
                   <Text style={styles.extraPricePoints}>
-                    +{extras.filter(e => e.selected).reduce((total, e) => total + fcfaToPoints(e.price), 0).toFixed(1)} pts
+                    +{formatPointsAmount(extras.filter(e => e.selected).reduce((total, e) => total + fcfaToPoints(e.price), 0))}
                   </Text>
-                  <Text style={styles.extraPriceFcfa}>
-                    (+{extras.filter(e => e.selected).reduce((total, e) => total + e.price, 0)} FCFA)
+                  <Text style={[styles.extraPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                        numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                        ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                    (+{formatFcfaAmount(extras.filter(e => e.selected).reduce((total, e) => total + e.price, 0))})
                   </Text>
                 </View>
               </View>
@@ -372,8 +379,12 @@ export default function ProductCustomizationPage() {
               <View style={styles.priceRow}>
                 <Text style={styles.totalLabel}>Total :</Text>
                 <View style={styles.priceValues}>
-                  <Text style={styles.totalPricePoints}>{calculateTotalPrice().toFixed(1)} pts</Text>
-                  <Text style={styles.totalPriceFcfa}>({calculateTotalPriceFcfa()} FCFA)</Text>
+                  <Text style={styles.totalPricePoints}>{formatPointsAmount(calculateTotalPrice())}</Text>
+                  <Text style={[styles.totalPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                        numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                        ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                    ({formatFcfaAmount(calculateTotalPriceFcfa())})
+                  </Text>
                 </View>
               </View>
             </>
@@ -407,10 +418,12 @@ export default function ProductCustomizationPage() {
                     <Text style={styles.extraDescription}>{extra.description}</Text>
                     <View style={styles.extraPriceContainer}>
                       <Text style={styles.extraPricePoints}>
-                        {fcfaToPoints(extra.price).toFixed(1)} pts
+                        {formatPointsAmount(fcfaToPoints(extra.price))}
                       </Text>
-                      <Text style={styles.extraPriceFcfaText}>
-                        ({extra.price} FCFA)
+                      <Text style={[styles.extraPriceFcfaText, getResponsiveTextProps('fcfa').style]}
+                            numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                            ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                        ({formatFcfaAmount(extra.price)})
                       </Text>
                     </View>
                   </View>
@@ -460,7 +473,7 @@ export default function ProductCustomizationPage() {
         >
           <ShoppingCart size={20} color="#fff" />
           <Text style={styles.addButtonText}>
-            {isAdding ? 'Ajout...' : `Ajouter ${calculateTotalPrice().toFixed(1)} pts`}
+            {isAdding ? 'Ajout...' : `Ajouter ${formatPointsAmount(calculateTotalPrice())}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -827,6 +840,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6c757d',
     marginTop: 2,
+    textDecorationLine: 'line-through',
   },
   extraPricePoints: {
     fontSize: 14,
@@ -837,6 +851,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6c757d',
     marginTop: 1,
+    textDecorationLine: 'line-through',
   },
   totalLabel: {
     fontSize: 16,
@@ -852,6 +867,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6c757d',
     marginTop: 2,
+    textDecorationLine: 'line-through',
   },
   priceSeparator: {
     height: 1,
@@ -928,6 +944,7 @@ const styles = StyleSheet.create({
   extraPriceFcfaText: {
     fontSize: 12,
     color: '#6c757d',
+    textDecorationLine: 'line-through',
   },
   extraSelectionIndicator: {
     width: 28,

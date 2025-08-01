@@ -14,7 +14,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Plus, Truck, Package, Users, Star, Clock, MapPin, Percent } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fcfaToPoints } from '@/utils/pointsConversion';
+import { fcfaToPoints, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 const { width } = Dimensions.get('window');
 
@@ -398,8 +399,12 @@ export default function OrderScreen() {
       <View style={styles.featuredProductInfo}>
         <Text style={styles.featuredProductName} numberOfLines={2}>{product.name}</Text>
         <View style={styles.featuredPriceContainer}>
-          <Text style={styles.featuredProductPrice}>{fcfaToPoints(product.price)} pts</Text>
-          <Text style={styles.featuredProductPriceFcfa}>{product.price.toLocaleString()} FCFA</Text>
+          <Text style={styles.featuredProductPrice}>{formatPointsAmount(fcfaToPoints(product.price))}</Text>
+          <Text style={[styles.featuredProductPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+            {formatFcfaAmount(product.price)}
+          </Text>
           {product.discount && (
             <View style={styles.featuredDiscountContainer}>
               <Percent size={12} color="#00B14F" />
@@ -424,10 +429,14 @@ export default function OrderScreen() {
     <View key={offer.id} style={styles.offerCard}>
       <View style={styles.offerInfo}>
         <Text style={styles.offerTitle}>{offer.title}</Text>
-        <Text style={styles.offerPrice}>{fcfaToPoints(offer.price)} pts</Text>
-        <Text style={styles.offerPriceFcfa}>{offer.price.toLocaleString()} FCFA</Text>
+        <Text style={styles.offerPrice}>{formatPointsAmount(fcfaToPoints(offer.price))}</Text>
+        <Text style={[styles.offerPriceFcfa, getResponsiveTextProps('fcfa').style]}
+              numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+              ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+          {formatFcfaAmount(offer.price)}
+        </Text>
         {offer.originalPrice && (
-          <Text style={styles.offerOriginalPrice}>{fcfaToPoints(offer.originalPrice)} pts</Text>
+          <Text style={styles.offerOriginalPrice}>{formatPointsAmount(fcfaToPoints(offer.originalPrice))}</Text>
         )}
         <View style={styles.offerDiscountContainer}>
           <Percent size={12} color="#00B14F" />
@@ -566,10 +575,14 @@ export default function OrderScreen() {
                   </Text>
                   
                   <View style={styles.verticalOfferPriceContainer}>
-                    <Text style={styles.verticalOfferPrice}>{fcfaToPoints(offer.price)} pts</Text>
-                    <Text style={styles.verticalOfferPriceFcfa}>{offer.price.toLocaleString()} FCFA</Text>
+                    <Text style={styles.verticalOfferPrice}>{formatPointsAmount(fcfaToPoints(offer.price))}</Text>
+                    <Text style={[styles.verticalOfferPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                          numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                      {formatFcfaAmount(offer.price)}
+                    </Text>
                     {offer.originalPrice && (
-                      <Text style={styles.verticalOfferOriginalPrice}>{fcfaToPoints(offer.originalPrice)} pts</Text>
+                      <Text style={styles.verticalOfferOriginalPrice}>{formatPointsAmount(fcfaToPoints(offer.originalPrice))}</Text>
                     )}
                     {offer.discount && (
                       <Text style={styles.verticalOfferDiscount}>-{offer.discount}%</Text>
@@ -611,8 +624,12 @@ export default function OrderScreen() {
                       {item.description}
                     </Text>
                     <View style={styles.priceContainer}>
-                      <Text style={styles.menuItemPrice}>{fcfaToPoints(item.price).toLocaleString()} pts</Text>
-                      <Text style={styles.menuItemPriceFcfa}>{item.price.toLocaleString()} FCFA</Text>
+                      <Text style={styles.menuItemPrice}>{formatPointsAmount(fcfaToPoints(item.price))}</Text>
+                      <Text style={[styles.menuItemPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                            numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                            ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                        {formatFcfaAmount(item.price)}
+                      </Text>
                     </View>
                   </View>
                   

@@ -11,6 +11,8 @@ import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ShoppingBag, Plus } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
+import { formatFcfaAmount, formatPointsAmount, fcfaToPoints } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 // Mock data pour les articles beauté
 const mockBeautyProducts = [
@@ -194,11 +196,13 @@ export default function BeautyArticlesScreen() {
                       </Text>
                       
                       <View style={styles.priceContainer}>
-                        <Text style={styles.fcfaPrice}>
-                          {product.fcfaPrice.toLocaleString()} FCFA
+                        <Text style={[styles.fcfaPrice, getResponsiveTextProps('fcfa').style]}
+                              numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                              ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                          {formatFcfaAmount(product.fcfaPrice)}
                         </Text>
                         <Text style={styles.pointsPrice}>
-                          {product.points} pts
+                          {formatPointsAmount(product.points)}
                         </Text>
                       </View>
                       

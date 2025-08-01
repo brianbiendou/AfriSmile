@@ -18,7 +18,8 @@ import { Stack, router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Smartphone, Plus, CreditCard, Wallet, History, TrendingUp } from 'lucide-react-native';
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa, isValidRechargeAmount } from '@/utils/pointsConversion';
+import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa, isValidRechargeAmount, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
@@ -417,15 +418,17 @@ export default function WalletScreen() {
                   }
                 ]}
               >
-                {(user?.points || 0).toLocaleString()} pts
+                {formatPointsAmount(user?.points || 0)}
               </Animated.Text>
-              <Text style={styles.balanceValueSilver}>
-                {pointsToFcfa(user?.points || 0).toLocaleString()} FCFA
+              <Text style={[styles.balanceValueSilver, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                {formatFcfaAmount(pointsToFcfa(user?.points || 0))}
               </Text>
               <View style={styles.balanceSubtext}>
                 <TrendingUp size={16} color="#00B14F" style={styles.trendingIcon} />
                 <Text style={styles.balanceInfo}>
-                  1 point = 78.35 FCFA • {(user?.points || 0).toLocaleString()} points
+                  1 point = 78.35 FCFA • {formatPointsAmount(user?.points || 0)}
                 </Text>
               </View>
             </View>
@@ -493,7 +496,7 @@ export default function WalletScreen() {
                         parseInt(amount, 10) === amt && styles.quickAmountTextSelected,
                       ]}
                     >
-                      {amt.toLocaleString()} FCFA
+                      {formatFcfaAmount(amt)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -514,7 +517,7 @@ export default function WalletScreen() {
                         parseInt(amount, 10) === amt && styles.quickAmountTextSelected,
                       ]}
                     >
-                      {amt.toLocaleString()} FCFA
+                      {formatFcfaAmount(amt)}
                     </Text>
                   </TouchableOpacity>
                 ))}

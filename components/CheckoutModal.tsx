@@ -13,9 +13,10 @@ import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus,
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa } from '@/utils/pointsConversion';
+import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
 import { getFeeByProvider } from '@/utils/mobileMoneyFees';
 import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
+import { getResponsiveTextProps, getResponsivePriceStyles } from '@/utils/responsiveStyles';
 import { Coupon } from '@/data/coupons';
 import AnimatedCoupon from './AnimatedCoupon';
 import GoldMembershipPromo from './GoldMembershipPromo';
@@ -454,10 +455,12 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                       <View style={styles.cartHeaderRight}>
                         <View style={styles.cartHeaderTotalContainer}>
                           <Text style={styles.cartHeaderTotal}>
-                            {fcfaToPoints(cartTotal).toFixed(2)} pts
+                            {formatPointsAmount(fcfaToPoints(cartTotal))}
                           </Text>
-                          <Text style={styles.cartHeaderTotalFcfa}>
-                            {cartTotal.toLocaleString()} FCFA
+                          <Text style={[styles.cartHeaderTotalFcfa, getResponsiveTextProps('fcfa').style]} 
+                                numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                                ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                            {formatFcfaAmount(cartTotal)}
                           </Text>
                         </View>
                         {isCartExpanded ? (
@@ -538,10 +541,12 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                                 </View>
                                 <View style={styles.itemPriceContainer}>
                                   <Text style={styles.itemPrice}>
-                                    {fcfaToPoints(item.totalPrice).toFixed(2)} pts
+                                    {formatPointsAmount(fcfaToPoints(item.totalPrice))}
                                   </Text>
-                                  <Text style={styles.itemPriceFcfa}>
-                                    {item.totalPrice.toLocaleString()} FCFA
+                                  <Text style={[styles.itemPriceFcfa, getResponsiveTextProps('fcfa').style]}
+                                        numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                                        ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                                    {formatFcfaAmount(item.totalPrice)}
                                   </Text>
                                 </View>
                               </View>

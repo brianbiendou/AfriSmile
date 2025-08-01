@@ -106,3 +106,34 @@ export const generateSavingsAmount = (discountPercentage: number): number => {
   const adjustedAmount = Math.floor(randomAmount * (discountPercentage / 20));
   return Math.floor(adjustedAmount / 10) * 10; // Arrondir à la dizaine
 };
+
+/**
+ * Formate un montant FCFA de manière robuste pour éviter les problèmes d'affichage
+ * Utilise un espace insécable entre le montant et FCFA pour éviter les coupures
+ * @param amount Montant en FCFA
+ * @returns String formatée avec espace insécable "X.XXX FCFA"
+ */
+export const formatFcfaAmount = (amount: number): string => {
+  // Utilisation d'un espace insécable (\u00A0) pour éviter les coupures de ligne
+  return `${amount.toLocaleString()}\u00A0FCFA`;
+};
+
+/**
+ * Formate un montant points de manière robuste
+ * @param points Nombre de points
+ * @returns String formatée avec espace insécable "X pts"
+ */
+export const formatPointsAmount = (points: number): string => {
+  // Utilisation d'un espace insécable (\u00A0) pour éviter les coupures de ligne
+  return `${points.toLocaleString()}\u00A0pts`;
+};
+
+/**
+ * Formate les points avec l'équivalent FCFA de manière robuse (UNIQUEMENT pour le portefeuille)
+ * @param points Nombre de points
+ * @returns String formatée avec espaces insécables
+ */
+export const formatPointsWithFcfaRobust = (points: number): string => {
+  const fcfa = pointsToFcfa(points);
+  return `${points.toLocaleString()}\u00A0pts\u00A0(${fcfa.toLocaleString()}\u00A0FCFA)`;
+};

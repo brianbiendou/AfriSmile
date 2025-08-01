@@ -13,7 +13,8 @@ import { Stack, router } from 'expo-router';
 import { ArrowLeft, TrendingUp, Gift, Wallet } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { pointsToFcfa, formatPointsWithFcfa } from '@/utils/pointsConversion';
+import { pointsToFcfa, formatPointsWithFcfa, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 export default function RewardsScreen() {
   const { user: authUser } = useAuth();
@@ -132,8 +133,12 @@ export default function RewardsScreen() {
                 <Gift size={24} color="#00B14F" />
               </View>
               <Text style={styles.statTitle}>Points de fidélité</Text>
-              <Text style={styles.statValue}>{user.points.toLocaleString()}</Text>
-              <Text style={styles.statSubtitle}>≈ {pointsToFcfa(user.points).toLocaleString()} FCFA</Text>
+              <Text style={styles.statValue}>{formatPointsAmount(user.points)}</Text>
+              <Text style={[styles.statSubtitle, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                ≈ {formatFcfaAmount(pointsToFcfa(user.points))}
+              </Text>
             </View>
             
             <View style={styles.statCard}>
@@ -141,7 +146,11 @@ export default function RewardsScreen() {
                 <Wallet size={24} color="#FF6B6B" />
               </View>
               <Text style={styles.statTitle}>Économies totales</Text>
-              <Text style={styles.statValue}>{totalDiscount.toLocaleString()} FCFA</Text>
+              <Text style={[styles.statValue, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                {formatFcfaAmount(totalDiscount)}
+              </Text>
               <Text style={styles.statSubtitle}>Sur {user.ordersCount} commandes</Text>
             </View>
             
@@ -150,8 +159,12 @@ export default function RewardsScreen() {
                 <TrendingUp size={24} color="#4ECDC4" />
               </View>
               <Text style={styles.statTitle}>Cashback</Text>
-              <Text style={styles.statValue}>{totalCashback} points</Text>
-              <Text style={styles.statSubtitle}>≈ {pointsToFcfa(totalCashback).toLocaleString()} FCFA</Text>
+              <Text style={styles.statValue}>{formatPointsAmount(totalCashback)}</Text>
+              <Text style={[styles.statSubtitle, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                ≈ {formatFcfaAmount(pointsToFcfa(totalCashback))}
+              </Text>
             </View>
           </View>
           
@@ -168,8 +181,16 @@ export default function RewardsScreen() {
                 
                 <View style={styles.savingDetails}>
                   <View style={styles.priceInfo}>
-                    <Text style={styles.originalPrice}>{saving.originalPrice.toLocaleString()} FCFA</Text>
-                    <Text style={styles.finalPrice}>{saving.finalPrice.toLocaleString()} FCFA</Text>
+                    <Text style={[styles.originalPrice, getResponsiveTextProps('strikethrough').style]}
+                          numberOfLines={getResponsiveTextProps('strikethrough').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('strikethrough').ellipsizeMode}>
+                      {formatFcfaAmount(saving.originalPrice)}
+                    </Text>
+                    <Text style={[styles.finalPrice, getResponsiveTextProps('fcfa').style]}
+                          numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                          ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                      {formatFcfaAmount(saving.finalPrice)}
+                    </Text>
                   </View>
                   
                   <View style={styles.savingInfo}>

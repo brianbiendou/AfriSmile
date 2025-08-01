@@ -16,6 +16,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useGold } from '@/contexts/GoldContext'; // Importer le context Gold
+import { formatFcfaAmount, formatPointsAmount, pointsToFcfa } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 import QRCodeModal from '@/components/QRCodeModal';
 import WalletModal from '@/components/WalletModal';
 import RewardsModal from '@/components/RewardsModal';
@@ -24,8 +26,7 @@ import LogoutModal from '@/components/LogoutModal';
 import CartIcon from '@/components/CartIcon';
 import CheckoutModal from '@/components/CheckoutModal';
 import DatabaseTestTool from '@/components/DatabaseTestTool';
-import { pointsToFcfa, formatPointsWithFcfa } from '@/utils/pointsConversion';
-import { formatPoints } from '@/utils/pointsConversion';
+import { formatPointsWithFcfa, formatPoints } from '@/utils/pointsConversion';
 
 export default function ProfileScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -229,10 +230,12 @@ export default function ProfileScreen() {
                 }
               ]}
             >
-              {user.points.toLocaleString()} pts
+              {formatPointsAmount(user.points)}
             </Animated.Text>
-            <Text style={styles.pointsBalanceValueSilver}>
-              {pointsToFcfa(user.points).toLocaleString()} FCFA
+            <Text style={[styles.pointsBalanceValueSilver, getResponsiveTextProps('fcfa').style]}
+                  numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                  ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+              {formatFcfaAmount(pointsToFcfa(user.points))}
             </Text>
           </View>
         </View>

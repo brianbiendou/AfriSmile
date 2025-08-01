@@ -11,6 +11,8 @@ import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, MapPin, Star, Clock, Calendar } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
+import { formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 // Mock data pour les prestations beauté
 const mockBeautyServices = [
@@ -192,8 +194,12 @@ export default function BeautyBookingScreen() {
                         </View>
                         
                         <View style={styles.priceContainer}>
-                          <Text style={styles.fcfaPrice}>{service.fcfaPrice.toLocaleString()} FCFA</Text>
-                          <Text style={styles.pointsPrice}>{service.points} pts</Text>
+                          <Text style={[styles.fcfaPrice, getResponsiveTextProps('fcfa').style]}
+                                numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                                ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                            {formatFcfaAmount(service.fcfaPrice)}
+                          </Text>
+                          <Text style={styles.pointsPrice}>{formatPointsAmount(service.points)}</Text>
                         </View>
                       </View>
                     </View>

@@ -13,6 +13,8 @@ import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, CreditCard } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
+import { formatPointsAmount, formatFcfaAmount, pointsToFcfa } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 // Génération des dates disponibles (3 semaines à partir d'aujourd'hui)
 const generateAvailableDates = () => {
@@ -164,7 +166,12 @@ export default function BeautyCalendarScreen() {
             </View>
             <View style={styles.summaryRow}>
               <CreditCard size={16} color="#8B5CF6" />
-              <Text style={styles.summaryText}>Prix: {servicePrice} points</Text>
+              <Text style={styles.summaryTextPoints}>Prix: {formatPointsAmount(servicePrice)} </Text>
+              <Text style={[styles.summaryTextFcfa, getResponsiveTextProps('fcfa').style]}
+                    numberOfLines={getResponsiveTextProps('fcfa').numberOfLines}
+                    ellipsizeMode={getResponsiveTextProps('fcfa').ellipsizeMode}>
+                {formatFcfaAmount(Math.round(pointsToFcfa(servicePrice)))}
+              </Text>
             </View>
           </View>
         </View>
@@ -314,10 +321,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  summaryText: {
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginLeft: 8,
+    gap: 8,
+  },
+  summaryText: {
     fontSize: 14,
     color: '#666',
+    marginLeft: 8,
+  },
+  summaryTextPoints: {
+    fontSize: 14,
+    color: '#D4AF37', // Couleur dorée pour les prix en points
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  summaryTextFcfa: {
+    fontSize: 14,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginLeft: 4,
   },
   section: {
     backgroundColor: '#fff',

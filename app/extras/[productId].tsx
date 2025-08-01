@@ -14,7 +14,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
 import { ExtraItem, mockExtras } from '@/data/extras';
-import { fcfaToPoints } from '@/utils/pointsConversion';
+import { fcfaToPoints, formatFcfaAmount, formatPointsAmount } from '@/utils/pointsConversion';
+import { getResponsiveTextProps } from '@/utils/responsiveStyles';
 
 const { width } = Dimensions.get('window');
 
