@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { User, Provider } from '@/types/database';
 import storage from '@/utils/storage';
+import * as Crypto from 'expo-crypto';
 
 export interface AuthResult {
   success: boolean;
@@ -18,6 +19,21 @@ const CACHE_KEYS = {
 };
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Fonction pour hasher le mot de passe avec SHA-512
+const hashPassword = async (password: string): Promise<string> => {
+  try {
+    const hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA512,
+      password,
+      { encoding: Crypto.CryptoEncoding.HEX }
+    );
+    return hash;
+  } catch (error) {
+    console.error('Error hashing password:', error);
+    throw new Error('Erreur lors du hachage du mot de passe');
+  }
+};
 
 // Fonction utilitaire pour le cache
 const getCachedData = async (key: string, timestampKey: string) => {
@@ -95,9 +111,12 @@ export const authenticateUser = async (email: string, password: string): Promise
       
       // Si aucun compte n'existe, créer un compte de test
       if (email === 'client@test.ci') {
+        const testPasswordHash = await hashPassword('password123'); // Hash du mot de passe de test
+        
         const newUser = {
           id: 'test-client-id',
           email: 'client@test.ci',
+          password_hash: testPasswordHash, // Hash SHA-512 du mot de passe de test
           role: 'client' as const,
           first_name: 'Marie',
           last_name: 'Kouassi',
@@ -121,9 +140,12 @@ export const authenticateUser = async (email: string, password: string): Promise
           return { success: true, user: insertedUser };
         }
       } else if (email === 'admin@test.ci') {
+        const testPasswordHash = await hashPassword('password123'); // Hash du mot de passe de test
+        
         const newAdmin = {
           id: 'test-admin-id',
           email: 'admin@test.ci',
+          password_hash: testPasswordHash, // Hash SHA-512 du mot de passe de test
           role: 'admin' as const,
           first_name: 'Admin',
           last_name: 'Système',
@@ -153,7 +175,10 @@ export const authenticateUser = async (email: string, password: string): Promise
 
     // Pour tous les autres comptes, chercher directement dans la base
     try {
-      // Chercher directement dans la table users avec email/password
+      // Hasher le mot de passe saisi pour comparaison
+      const hashedInputPassword = await hashPassword(password);
+      
+      // Chercher directement dans la table users avec email
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -161,9 +186,24 @@ export const authenticateUser = async (email: string, password: string): Promise
         .maybeSingle();
 
       if (!userError && userData) {
-        // Pour une vraie app, vérifier le hash du mot de passe ici
-        await setCachedData(CACHE_KEYS.USER, CACHE_KEYS.USER_TIMESTAMP, userData);
-        return { success: true, user: userData };
+        // Vérifier le hash du mot de passe
+        if (userData.password_hash === hashedInputPassword) {
+          await setCachedData(CACHE_KEYS.USER, CACHE_KEYS.USER_TIMESTAMP, userData);
+          return { success: true, user: userData };
+        } else {
+          // Si le hash ne correspond pas, essayer avec Supabase Auth (comptes existants)
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          
+          if (!authError && authData.user) {
+            await setCachedData(CACHE_KEYS.USER, CACHE_KEYS.USER_TIMESTAMP, userData);
+            return { success: true, user: userData };
+          } else {
+            return { success: false, error: 'Email ou mot de passe incorrect' };
+          }
+        }
       }
 
       // Chercher directement dans la table providers
@@ -174,9 +214,19 @@ export const authenticateUser = async (email: string, password: string): Promise
         .maybeSingle();
 
       if (!providerError && providerData) {
-        // Pour une vraie app, vérifier le hash du mot de passe ici
-        await setCachedData(CACHE_KEYS.PROVIDER, CACHE_KEYS.PROVIDER_TIMESTAMP, providerData);
-        return { success: true, provider: providerData };
+        // Pour les prestataires, on utilise Supabase Auth comme avant
+        // car ils n'ont pas de password_hash dans leur table
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+        
+        if (!authError && authData.user) {
+          await setCachedData(CACHE_KEYS.PROVIDER, CACHE_KEYS.PROVIDER_TIMESTAMP, providerData);
+          return { success: true, provider: providerData };
+        } else {
+          return { success: false, error: 'Email ou mot de passe incorrect' };
+        }
       }
 
       return { success: false, error: 'Email ou mot de passe incorrect' };
@@ -230,6 +280,9 @@ export const registerUser = async (userData: {
   phone?: string;
 }): Promise<AuthResult> => {
   try {
+    // Hasher le mot de passe avec SHA-512
+    const hashedPassword = await hashPassword(userData.password);
+
     // Créer le compte Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email,
@@ -248,6 +301,7 @@ export const registerUser = async (userData: {
     const newUser = {
       id: authData.user.id,
       email: userData.email,
+      password_hash: hashedPassword, // Hash SHA-512 du mot de passe
       role: 'client' as const,
       first_name: userData.firstName,
       last_name: userData.lastName,
@@ -288,6 +342,9 @@ export const registerProvider = async (providerData: {
   description?: string;
 }): Promise<AuthResult> => {
   try {
+    // Hasher le mot de passe avec SHA-512
+    const hashedPassword = await hashPassword(providerData.password);
+
     // Créer le compte Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: providerData.email,

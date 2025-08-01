@@ -156,7 +156,16 @@ export default function AuthScreen() {
 
         const success = await register(userData);
         if (!success) {
-          Alert.alert('Erreur', 'Une erreur est survenue lors de l\'inscription');
+          Alert.alert(
+            'Erreur d\'inscription', 
+            'Impossible de créer le compte. Vérifiez que l\'email n\'est pas déjà utilisé.'
+          );
+        } else {
+          Alert.alert(
+            'Inscription réussie', 
+            'Votre compte a été créé avec succès !',
+            [{ text: 'OK', onPress: () => resetForm() }]
+          );
         }
       }
     } catch (error) {

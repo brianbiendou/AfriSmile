@@ -186,88 +186,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       console.log('🔑 Tentative de connexion pour:', email);
       
-      // Simulation de connexion réussie avec les comptes de test
-      const testAccounts = [
-        {
-          email: 'client@test.ci',
-          userData: {
-            id: 'client-001',
-            email: 'client@test.ci',
-            first_name: 'Marie',
-            last_name: 'Kouassi',
-            phone: '+225 07 12 34 56 78',
-            points: 1021, // 80000 FCFA en nouveaux points
-            balance: 80000.0, // Balance en FCFA
-            role: 'client',
-            membershipType: 'classic' as const, // Utilisateur standard par défaut
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        },
-        {
-          email: 'prestataire@test.ci',
-          userData: {
-            id: 'provider-001',
-            email: 'prestataire@test.ci',
-            first_name: 'Tante',
-            last_name: 'Marie',
-            phone: '+225 07 89 01 23 45',
-            points: 1, // 100 FCFA en nouveaux points
-            balance: 100.0,
-            role: 'provider',
-            membershipType: 'classic' as const, // Les prestataires ont aussi un type d'abonnement
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        },
-        {
-          email: 'admin@test.ci',
-          userData: {
-            id: 'admin-001',
-            email: 'admin@test.ci',
-            first_name: 'Admin',
-            last_name: 'Système',
-            phone: '+225 05 00 00 00 00',
-            points: 1915, // 150000 FCFA en nouveaux points
-            balance: 150000.0, // Balance en FCFA
-            role: 'admin',
-            membershipType: 'gold' as const, // L'administrateur a un abonnement gold par défaut
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
+      // Utiliser la nouvelle fonction d'authentification avec hachage SHA-512
+      const { authenticateUser } = await import('@/lib/auth');
+      const authResult = await authenticateUser(email, password);
+      
+      if (authResult.success) {
+        console.log('✅ Connexion réussie:', authResult.user ? 'Utilisateur' : 'Prestataire');
+        
+        if (authResult.user) {
+          // Convertir le format de la base vers le format du contexte
+          const formattedUser: User = {
+            id: authResult.user.id,
+            email: authResult.user.email,
+            first_name: authResult.user.first_name,
+            last_name: authResult.user.last_name,
+            phone: authResult.user.phone || '',
+            points: authResult.user.points || 0,
+            balance: authResult.user.balance || 0,
+            role: authResult.user.role,
+            membershipType: 'classic', // Par défaut
+            is_active: authResult.user.is_active,
+            created_at: authResult.user.created_at || new Date().toISOString(),
+            updated_at: authResult.user.updated_at || new Date().toISOString(),
+          };
+          
+          setUser(formattedUser);
+          setProvider(null);
+          
+          // Sauvegarder les données de reconnexion
+          await saveReconnectionData(email, 'user');
+          
+        } else if (authResult.provider) {
+          setProvider(authResult.provider as any); // Cast temporaire pour le type
+          setUser(null);
+          
+          // Sauvegarder les données de reconnexion
+          await saveReconnectionData(email, 'provider');
         }
-      ];
-
-      const account = testAccounts.find(acc => acc.email === email);
-      if (account && password === 'password123') {
-        setUser(account.userData);
-        await saveUserData(account.userData);
         
-        // Sauvegarder les données de reconnexion avec le bon type
-        const userType = account.userData.role === 'provider' ? 'provider' : 'user';
-        await saveReconnectionData(email, userType);
-        
-        console.log(`✅ Connexion réussie pour: ${email} (${account.userData.role})`);
-        setIsLoading(false);
         return true;
+      } else {
+        console.log('❌ Connexion échouée:', authResult.error);
+        return false;
       }
-
-      console.log('❌ Identifiants incorrects');
-      setIsLoading(false);
-      return false;
+      
     } catch (error) {
       console.error('❌ Erreur lors de la connexion:', error);
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (userData: any): Promise<boolean> => {
-    // Simulation d'inscription réussie
-    return true;
+    try {
+      setIsLoading(true);
+      console.log('📝 Tentative d\'inscription pour:', userData.email);
+      
+      // Import dynamique pour éviter les dépendances circulaires
+      const { registerUser, registerProvider } = await import('@/lib/auth');
+      
+      let result;
+      if (userData.userType === 'client') {
+        result = await registerUser({
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone
+        });
+      } else if (userData.userType === 'provider') {
+        result = await registerProvider({
+          email: userData.email,
+          password: userData.password,
+          businessName: userData.businessName,
+          ownerName: userData.ownerName,
+          phone: userData.phone,
+          address: userData.address,
+          location: userData.location,
+          category: userData.category,
+          description: userData.description
+        });
+      } else {
+        console.error('Type d\'utilisateur non reconnu:', userData.userType);
+        return false;
+      }
+      
+      if (result.success) {
+        console.log('✅ Inscription réussie');
+        
+        // Connecter automatiquement après inscription
+        if (result.user) {
+          const formattedUser = {
+            ...result.user,
+            membershipType: 'classic' as const,
+            phone: result.user.phone || '' // Assurer que phone n'est pas undefined
+          };
+          setUser(formattedUser);
+          await saveUserData(formattedUser);
+          await saveReconnectionData(userData.email, 'user');
+          console.log('✅ Utilisateur connecté automatiquement après inscription');
+        } else if (result.provider) {
+          // Pour les prestataires, on pourrait les traiter différemment
+          console.log('✅ Prestataire créé avec succès');
+          // Note: Pour l'instant, on ne connecte pas automatiquement les prestataires
+          // car ils pourraient nécessiter une validation manuelle
+        }
+        
+        return true;
+      } else {
+        console.error('❌ Échec de l\'inscription:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'inscription:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = async () => {
