@@ -33,11 +33,6 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
   const { user, updateUserPoints } = useAuth();
   const { triggerGoldUpgradeModal, checkMembershipStatus, membership } = useGold();
   const responsiveStyles = useResponsiveModalStyles();
-  // DEBUG: Log styles dynamiques
-  console.log('responsiveStyles.header', responsiveStyles.header);
-  console.log('responsiveStyles.closeButton', responsiveStyles.closeButton);
-  console.log('responsiveStyles.title', responsiveStyles.title);
-  console.log('responsiveStyles.content', responsiveStyles.content);
   // État pour contrôler les animations et la logique de paiement
   const [selectedPayment, setSelectedPayment] = useState<'points' | 'mtn' | 'orange' | 'moov'>('points');
   const [isProcessing, setIsProcessing] = useState(false);

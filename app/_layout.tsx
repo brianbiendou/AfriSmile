@@ -25,7 +25,7 @@ function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen visible={true} onComplete={() => console.log('Loading complete')} />;
+    return <LoadingScreen visible={true} onComplete={() => {}} />;
   }
 
   if (!isAuthenticated) {
