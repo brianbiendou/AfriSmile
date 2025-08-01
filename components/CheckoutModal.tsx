@@ -1127,4 +1127,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
   },
+  // Styles pour les détails de réservation beauté
+  bookingDetailsContainer: {
+    backgroundColor: '#F8F4FF',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#8B5CF6',
+  },
+  bookingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  bookingDate: {
+    fontSize: 12,
+    color: '#4C1D95',
+    fontWeight: '600',
+    marginLeft: 6,
+    textTransform: 'capitalize',
+  },
+  bookingTime: {
+    fontSize: 12,
+    color: '#4C1D95',
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  bookingServiceBadge: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  bookingServiceText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
 });

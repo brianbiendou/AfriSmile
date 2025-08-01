@@ -121,7 +121,7 @@ export default function BeautyCalendarScreen() {
   };
 
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -134,7 +134,7 @@ export default function BeautyCalendarScreen() {
         }}
       />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Résumé de la prestation */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Réservation</Text>
@@ -212,17 +212,20 @@ export default function BeautyCalendarScreen() {
           </View>
         )}
 
-        {/* Bouton de confirmation */}
-        {selectedDate && selectedTime && (
-          <View style={styles.bookingSection}>
-            <TouchableOpacity style={styles.bookButton} onPress={handleBooking}>
-              <Calendar size={20} color="#fff" />
-              <Text style={styles.bookButtonText}>Ajouter au panier</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Espace pour éviter que le contenu soit masqué par le bouton fixe */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </>
+
+      {/* Bouton de confirmation fixe en bas */}
+      {selectedDate && selectedTime && (
+        <View style={styles.fixedButtonContainer}>
+          <TouchableOpacity style={styles.bookButton} onPress={handleBooking}>
+            <Calendar size={20} color="#fff" />
+            <Text style={styles.bookButtonText}>Ajouter au panier</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -230,6 +233,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
+  },
+  scrollContent: {
+    flex: 1,
   },
   summaryCard: {
     backgroundColor: '#fff',
@@ -352,8 +358,24 @@ const styles = StyleSheet.create({
   selectedTimeText: {
     color: '#fff',
   },
-  bookingSection: {
+  bottomSpacer: {
+    height: 100, // Espace pour éviter que le contenu soit masqué par le bouton fixe
+  },
+  fixedButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FAFAFA',
     padding: 20,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   bookButton: {
     backgroundColor: '#8B5CF6',
