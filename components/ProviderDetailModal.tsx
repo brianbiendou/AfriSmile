@@ -25,6 +25,21 @@ import { useResponsiveModalStyles } from '@/hooks/useResponsiveDimensions';
 import { mockExtras } from '@/data/extras';
 import { eventService, APP_EVENTS } from '@/utils/eventService';
 
+// Fonction utilitaire pour détecter les prestataires de beauté
+const isBeautyProvider = (category: string | undefined): boolean => {
+  if (!category) return false;
+  const categoryLower = category.toLowerCase();
+  return (
+    categoryLower.includes('beauté') ||
+    categoryLower.includes('manucure') ||
+    categoryLower.includes('pédicure') ||
+    categoryLower === 'salon de beauté' ||
+    categoryLower.includes('coiffure') ||
+    categoryLower.includes('spa') ||
+    categoryLower.includes('nail')
+  );
+};
+
 interface ProviderDetailModalProps {
   visible: boolean;
   onClose: () => void;
@@ -209,6 +224,24 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
     });
   };
 
+  const handleShowBooking = () => {
+    // Fermer le modal actuel et naviguer vers la page de sélection des services beauté
+    onClose();
+    router.push({
+      pathname: '/beauty/services/[providerId]',
+      params: { providerId: provider?.id || '' }
+    });
+  };
+
+  const handleShowArticles = () => {
+    // Fermer le modal actuel et naviguer vers la page des articles beauté
+    onClose();
+    router.push({
+      pathname: '/beauty/articles/[providerId]',
+      params: { providerId: provider?.id || '' }
+    });
+  };
+
   const handleProductPress = (product: any) => {
     setSelectedProduct(product);
     setShowCustomization(true);
@@ -261,11 +294,11 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
             onPress: () => {
               setShowExtrasSelection(false);
               setCurrentCartItemId(null);
-              // Fermer ce modal et ouvrir le modal du panier
+              // Fermer ce modal et ouvrir la page du panier
               onClose();
-              // Déclencher l'événement d'ouverture du panier
+              // Naviguer vers la page du panier
               setTimeout(() => {
-                eventService.emit(APP_EVENTS.OPEN_CART);
+                router.push('/cart');
               }, 300);
             }
           }
@@ -402,23 +435,12 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
             
             {!showLoading && provider && (
               <>
-                {/* Bouton de fermeture */}
-                <View style={responsiveStyles.header}>
-                  <TouchableOpacity onPress={handleClose} style={[responsiveStyles.closeButton, {
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: 24,
-                    padding: 10,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 4,
-                    elevation: 5,
-                  }]}>
-                    <X size={24} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+                {/* Bouton de fermeture dans le coin du modal */}
+                <TouchableOpacity onPress={handleClose} style={styles.closeButtonTopLeft}>
+                  <X size={20} color="#fff" />
+                </TouchableOpacity>
 
-                {/* Image d'en-tête avec effet gradient circulaire */}
+                {/* Image d'en-tête */}
                 <View style={styles.headerCircleContainer}>
                   <View style={styles.headerCircleImageContainer}>
                     <Image
@@ -461,31 +483,63 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
 
                   {/* Action Buttons - Vertical Layout avec style amélioré - Centré */}
                   <View style={styles.actionSectionCentered}>
-                    <TouchableOpacity 
-                      style={[
-                        styles.actionButtonCentered, 
-                        { 
-                          backgroundColor: '#FF6B6B',
-                        }
-                      ]} 
-                      onPress={handleShowMenu}
-                    >
-                      <ShoppingBag size={18} color="#fff" strokeWidth={2} />
-                      <Text style={styles.actionButtonTextCentered}>Commander</Text>
-                    </TouchableOpacity>
+                    {isBeautyProvider(provider.category) ? (
+                      <>
+                        <TouchableOpacity 
+                          style={[
+                            styles.actionButtonCentered, 
+                            { 
+                              backgroundColor: '#8B5CF6',
+                            }
+                          ]} 
+                          onPress={handleShowBooking}
+                        >
+                          <Text style={styles.actionButtonEmojiCentered}>💄</Text>
+                          <Text style={styles.actionButtonTextCentered}>Réserver</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity 
-                      style={[
-                        styles.actionButtonCentered, 
-                        { 
-                          backgroundColor: '#FF9500',
-                        }
-                      ]} 
-                      onPress={handleShowUnsoldProducts}
-                    >
-                      <Text style={styles.actionButtonEmojiCentered}>🔥</Text>
-                      <Text style={styles.actionButtonTextCentered}>Invendus</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={[
+                            styles.actionButtonCentered, 
+                            { 
+                              backgroundColor: '#EC4899',
+                            }
+                          ]} 
+                          onPress={handleShowArticles}
+                        >
+                          <Text style={styles.actionButtonEmojiCentered}>💎</Text>
+                          <Text style={styles.actionButtonTextCentered}>Articles</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <TouchableOpacity 
+                          style={[
+                            styles.actionButtonCentered, 
+                            { 
+                              backgroundColor: '#FF6B6B',
+                            }
+                          ]} 
+                          onPress={handleShowMenu}
+                        >
+                          <ShoppingBag size={18} color="#fff" strokeWidth={2} />
+                          <Text style={styles.actionButtonTextCentered}>Commander</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                          style={[
+                            styles.actionButtonCentered, 
+                            { 
+                              backgroundColor: '#FF9500',
+                            }
+                          ]} 
+                          onPress={handleShowUnsoldProducts}
+                        >
+                          <Text style={styles.actionButtonEmojiCentered}>🔥</Text>
+                          <Text style={styles.actionButtonTextCentered}>Invendus</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
                 </View>
               </>
@@ -1100,8 +1154,8 @@ const styles = StyleSheet.create({
   // Nouveaux styles pour le modal compact
   headerCircleContainer: {
     alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 5, // Réduit de 20 à 5
+    paddingBottom: 5, // Réduit de 10 à 5
   },
   headerCircleImageContainer: {
     width: 90, // Taille réduite
@@ -1115,6 +1169,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
+    position: 'relative', // Pour positionner les éléments absolus
+  },
+  closeButtonTopLeft: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 10,
   },
   headerCircleImage: {
     width: '100%',
@@ -1141,12 +1210,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modalContent: {
-    padding: 15,
+    padding: 10, // Réduit de 15 à 10
     paddingBottom: 20,
   },
   providerInfoCompact: {
     alignItems: 'center',
-    marginBottom: 10, // Réduit la marge
+    marginBottom: 8, // Réduit de 10 à 8
   },
   providerNameCompact: {
     fontSize: 20, // Police plus petite

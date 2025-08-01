@@ -12,12 +12,11 @@ import {
 } from 'react-native';
 import { Search, MapPin, Star, Wallet } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useCart } from '@/contexts/CartContext';
 import ProviderCard from '@/components/ProviderCard';
 import ProviderDetailModal from '@/components/ProviderDetailModal';
 import CartIcon from '@/components/CartIcon';
-import CartModal from '@/components/CartModal';
 import CheckoutModal from '@/components/CheckoutModal';
 import ReconnectionStatus from '@/components/ReconnectionStatus';
 import { getProviders, subscribeToProviders } from '@/lib/providers';
@@ -34,7 +33,6 @@ export default function HomeScreen() {
   const [selectedProvider, setSelectedProvider] = useState<ProviderCompat | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [cartModalVisible, setCartModalVisible] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [providers, setProviders] = useState<ProviderCompat[]>([
     {
@@ -267,7 +265,7 @@ export default function HomeScreen() {
   // Gérer l'ouverture automatique du panier
   useEffect(() => {
     if (showCart === 'true') {
-      setCartModalVisible(true);
+      router.push('/cart');
     }
   }, [showCart]);
 
@@ -444,7 +442,7 @@ export default function HomeScreen() {
             <Text style={styles.pointsText}>{formatPoints(userPoints)}</Text>
           </View>
           
-          <CartIcon onPress={() => setCartModalVisible(true)} />
+          <CartIcon onPress={() => router.push('/cart')} />
         </View>
       </View>
 
@@ -578,15 +576,6 @@ export default function HomeScreen() {
           userPoints={userPoints}
         />
       )}
-
-      <CartModal
-        visible={cartModalVisible}
-        onClose={() => setCartModalVisible(false)}
-        onCheckout={() => {
-          setCartModalVisible(false);
-          setCheckoutModalVisible(true);
-        }}
-      />
 
       <CheckoutModal
         visible={checkoutModalVisible}

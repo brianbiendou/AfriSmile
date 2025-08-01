@@ -7,6 +7,7 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import GoldMembershipHandler from '@/components/GoldMembershipHandler';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { OrdersProvider } from '@/contexts/OrdersContext';
 import { AppProvider } from '@/contexts/AppContext';
 import { CouponProvider } from '@/contexts/CouponContext';
 import AuthScreen from '@/components/AuthScreen';
@@ -59,14 +60,16 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <AuthProvider>
-        <CartProvider>
-          <CouponProvider>
-            <GoldProvider>
-              <AppContent />
-              <StatusBar style="auto" />
-            </GoldProvider>
-          </CouponProvider>
-        </CartProvider>
+        <OrdersProvider>
+          <CartProvider>
+            <CouponProvider>
+              <GoldProvider>
+                <AppContent />
+                <StatusBar style="auto" />
+              </GoldProvider>
+            </CouponProvider>
+          </CartProvider>
+        </OrdersProvider>
       </AuthProvider>
     </AppProvider>
   );

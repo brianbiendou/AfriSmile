@@ -69,8 +69,9 @@ export default function DiscountSection({
   };
 
   const calculateSavings = (discount: number) => {
-    const savings = Math.round(cartTotal * (discount / 100));
-    // cartTotal est déjà en FCFA, pas besoin de conversion
+    // cartTotal est en points, donc on le convertit en FCFA pour le calcul des économies
+    const cartTotalInFcfa = pointsToFcfa(cartTotal);
+    const savings = Math.round(cartTotalInFcfa * (discount / 100));
     return `${savings.toLocaleString()} FCFA`;
   };
 

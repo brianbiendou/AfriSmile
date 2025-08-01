@@ -9,7 +9,7 @@
   Animated,
   Alert,
 } from 'react-native';
-import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { X, CreditCard, Smartphone, MapPin, Clock, Ticket, Percent, Plus, Minus, ChevronDown, ChevronUp, Calendar } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -233,6 +233,34 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
     }).filter(str => str.length > 0).join(' | ');
   };
 
+  // Fonction pour déterminer si c'est un produit beauté
+  const isBeautyProduct = (item: any) => {
+    return item.customizations.some((c: any) => 
+      c.categoryId === 'booking' || 
+      c.categoryName?.toLowerCase().includes('beauté') ||
+      c.categoryName?.toLowerCase().includes('service de beauté')
+    ) || item.serviceType;
+  };
+
+  // Fonction pour formater les détails de réservation
+  const formatBookingDetails = (item: any) => {
+    if (item.bookingDate && item.bookingTime) {
+      const date = new Date(item.bookingDate);
+      const formattedDate = date.toLocaleDateString('fr-FR', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long',
+        year: 'numeric'
+      });
+      return {
+        date: formattedDate,
+        time: item.bookingTime,
+        serviceType: item.serviceType
+      };
+    }
+    return null;
+  };
+
   const handleApplyCoupon = (coupon: Coupon) => {
     if (selectedCartItemId) {
       applyCoupon(selectedCartItemId, coupon.code, coupon.discount);
@@ -444,61 +472,83 @@ export default function CheckoutModal({ visible, onClose }: CheckoutModalProps) 
                   {/* Liste des articles - Visible seulement si déployée */}
                   {isCartExpanded && (
                     <View style={styles.cartItemsContainer}>
-                      {cartItems.map((item) => (
-                        <View key={item.id} style={styles.orderItem}>
-                          <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-                          
-                          <View style={styles.itemDetails}>
-                            <Text style={styles.itemName}>{item.productName}</Text>
-                            <Text style={styles.providerName}>{item.providerName}</Text>
+                      {cartItems.map((item) => {
+                        const bookingDetails = formatBookingDetails(item);
+                        const isBeauty = isBeautyProduct(item);
+                        
+                        return (
+                          <View key={item.id} style={styles.orderItem}>
+                            <Image source={{ uri: item.productImage }} style={styles.itemImage} />
                             
-                            {item.customizations && item.customizations.length > 0 && (
-                              <Text style={styles.customizations} numberOfLines={2}>
-                                {formatCustomizations(item.customizations)}
-                              </Text>
-                            )}
-                            
-                            {item.extras && item.extras.length > 0 && (
-                              <Text style={styles.extras} numberOfLines={2}>
-                                Extras: {item.extras.map(extra => extra.name).join(', ')}
-                              </Text>
-                            )}
-                            
-                            {item.couponCode && item.couponDiscount && (
-                              <Text style={styles.couponApplied}>
-                                Coupon appliqué: -{Math.round((item.basePrice * item.quantity * item.couponDiscount) / 100).toLocaleString()} FCFA ({item.couponDiscount}%)
-                              </Text>
-                            )}
-                            
+                            <View style={styles.itemDetails}>
+                              <Text style={styles.itemName}>{item.productName}</Text>
+                              <Text style={styles.providerName}>{item.providerName}</Text>
+                              
+                              {/* Affichage spécial pour les réservations beauté */}
+                              {isBeauty && bookingDetails ? (
+                                <View style={styles.bookingDetailsContainer}>
+                                  <View style={styles.bookingRow}>
+                                    <Calendar size={14} color="#8B5CF6" />
+                                    <Text style={styles.bookingDate}>{bookingDetails.date}</Text>
+                                  </View>
+                                  <View style={styles.bookingRow}>
+                                    <Clock size={14} color="#8B5CF6" />
+                                    <Text style={styles.bookingTime}>Rendez-vous à {bookingDetails.time}</Text>
+                                  </View>
+                                  <View style={styles.bookingServiceBadge}>
+                                    <Text style={styles.bookingServiceText}>🏪 Salon de beauté</Text>
+                                  </View>
+                                </View>
+                              ) : (
+                                item.customizations && item.customizations.length > 0 && (
+                                  <Text style={styles.customizations} numberOfLines={2}>
+                                    {formatCustomizations(item.customizations)}
+                                  </Text>
+                                )
+                              )}
+                              
+                              {item.extras && item.extras.length > 0 && (
+                                <Text style={styles.extras} numberOfLines={2}>
+                                  Extras: {item.extras.map(extra => extra.name).join(', ')}
+                                </Text>
+                              )}
+                              
+                              {item.couponCode && item.couponDiscount && (
+                                <Text style={styles.couponApplied}>
+                                  Coupon appliqué: -{Math.round((item.basePrice * item.quantity * item.couponDiscount) / 100).toLocaleString()} FCFA ({item.couponDiscount}%)
+                                </Text>
+                              )}
+                              
 
-                            <View style={styles.itemFooter}>
-                              <View style={styles.quantityControls}>
-                                <TouchableOpacity 
-                                  style={styles.quantityControlButton}
-                                  onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                                >
-                                  <Minus size={16} color="#333" />
-                                </TouchableOpacity>
-                                <Text style={styles.quantityText}>{item.quantity}</Text>
-                                <TouchableOpacity 
-                                  style={styles.quantityControlButton}
-                                  onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                                >
-                                  <Plus size={16} color="#333" />
-                                </TouchableOpacity>
-                              </View>
-                              <View style={styles.itemPriceContainer}>
-                                <Text style={styles.itemPrice}>
-                                  {fcfaToPoints(item.totalPrice).toFixed(2)} pts
-                                </Text>
-                                <Text style={styles.itemPriceFcfa}>
-                                  {item.totalPrice.toLocaleString()} FCFA
-                                </Text>
+                              <View style={styles.itemFooter}>
+                                <View style={styles.quantityControls}>
+                                  <TouchableOpacity 
+                                    style={styles.quantityControlButton}
+                                    onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                                  >
+                                    <Minus size={16} color="#333" />
+                                  </TouchableOpacity>
+                                  <Text style={styles.quantityText}>{item.quantity}</Text>
+                                  <TouchableOpacity 
+                                    style={styles.quantityControlButton}
+                                    onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                                  >
+                                    <Plus size={16} color="#333" />
+                                  </TouchableOpacity>
+                                </View>
+                                <View style={styles.itemPriceContainer}>
+                                  <Text style={styles.itemPrice}>
+                                    {fcfaToPoints(item.totalPrice).toFixed(2)} pts
+                                  </Text>
+                                  <Text style={styles.itemPriceFcfa}>
+                                    {item.totalPrice.toLocaleString()} FCFA
+                                  </Text>
+                                </View>
                               </View>
                             </View>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   )}
                 </View>

@@ -8,11 +8,13 @@ import {
   Alert,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
-import { ArrowLeft, CreditCard, Smartphone, MapPin, Clock, Plus, Minus } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, Smartphone, MapPin, Clock, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrders } from '@/contexts/OrdersContext';
 import { pointsToFcfa, fcfaToPoints } from '@/utils/pointsConversion';
 import { getFeeByProvider } from '@/utils/mobileMoneyFees';
 import { Coupon } from '@/data/coupons';
@@ -24,6 +26,7 @@ import { router } from 'expo-router';
 export default function CheckoutPage() {
   const { cartItems, cartTotal, clearCart, applyCoupon, updateQuantity } = useCart();
   const { user, updateUserPoints } = useAuth();
+  const { createDraftOrder, updateDraftOrder, finalizeDraftOrder, draftOrder } = useOrders();
   const { triggerGoldUpgradeModal, checkMembershipStatus, membership } = useGold();
   
   // État pour contrôler la logique de paiement
@@ -35,6 +38,7 @@ export default function CheckoutPage() {
   const [globalDiscountPercentage, setGlobalDiscountPercentage] = useState(0);
   const [originalTotal, setOriginalTotal] = useState(cartTotal);
   const [discountedTotal, setDiscountedTotal] = useState(cartTotal);
+  const [isOrderItemsExpanded, setIsOrderItemsExpanded] = useState(false);
   
   // État pour les frais Mobile Money (chargés de manière asynchrone)
   const [mobileFees, setMobileFees] = useState({
@@ -69,15 +73,74 @@ export default function CheckoutPage() {
 
   // Mettre à jour les totaux quand cartTotal change (à cause des coupons ou modifications du panier)
   useEffect(() => {
+    const correctedTotal = getCorrectCartTotal();
     if (globalDiscountPercentage === 0) {
-      setOriginalTotal(cartTotal);
-      setDiscountedTotal(cartTotal);
+      setOriginalTotal(correctedTotal);
+      setDiscountedTotal(correctedTotal);
     } else {
-      const discounted = Math.round(cartTotal * (1 - globalDiscountPercentage / 100));
-      setOriginalTotal(cartTotal);
+      const discounted = Math.round(correctedTotal * (1 - globalDiscountPercentage / 100));
+      setOriginalTotal(correctedTotal);
       setDiscountedTotal(discounted);
     }
-  }, [cartTotal, globalDiscountPercentage]);
+
+    // Créer ou mettre à jour le brouillon de commande
+    if (cartItems.length > 0) {
+      const orderItems = cartItems.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productImage: item.productImage,
+        basePrice: item.basePrice,
+        quantity: item.quantity,
+        customizations: item.customizations,
+        extras: item.extras,
+        couponCode: item.couponCode,
+        couponDiscount: item.couponDiscount,
+        totalPrice: item.totalPrice,
+        providerId: item.providerId,
+        providerName: item.providerName,
+      }));
+
+      const discountAmount = Math.round(correctedTotal * (globalDiscountPercentage / 100));
+      
+      if (draftOrder) {
+        updateDraftOrder(orderItems, correctedTotal, discountAmount, globalDiscountPercentage);
+      } else {
+        createDraftOrder(orderItems, correctedTotal, discountAmount, globalDiscountPercentage);
+      }
+    }
+  }, [cartTotal, globalDiscountPercentage, cartItems]);
+
+  // Fonction pour déterminer si c'est un produit beauté
+  const isBeautyProduct = (item: any) => {
+    return item.customizations.some((c: any) => 
+      c.categoryId === 'booking' || 
+      c.categoryName?.toLowerCase().includes('beauté') ||
+      c.categoryName?.toLowerCase().includes('service de beauté')
+    );
+  };
+
+  // Fonction pour convertir le prix affiché correctement
+  const getDisplayPrice = (item: any) => {
+    if (isBeautyProduct(item)) {
+      // Les produits beauté sont déjà en points
+      return item.totalPrice;
+    } else {
+      // Les produits alimentaires peuvent être en FCFA, les convertir
+      const priceInPoints = item.totalPrice > 1000 ? fcfaToPoints(item.totalPrice) : item.totalPrice;
+      return priceInPoints;
+    }
+  };
+
+  // Calcul du total corrigé
+  const getCorrectCartTotal = () => {
+    return cartItems.reduce((total, item) => {
+      return total + getDisplayPrice(item);
+    }, 0);
+  };
+
+  // Utiliser le total corrigé au lieu de cartTotal
+  const correctedCartTotal = getCorrectCartTotal();
 
   const handleGoBack = () => {
     router.back();
@@ -85,6 +148,7 @@ export default function CheckoutPage() {
 
   const handlePayment = () => {
     const finalTotal = calculateFinalTotal();
+    const selectedFee = selectedPayment !== 'points' ? getSelectedMethodFee() : 0;
     
     // Vérifier si l'utilisateur a assez de points pour le paiement en points
     if (selectedPayment === 'points' && (!user || user.points < finalTotal)) {
@@ -101,11 +165,15 @@ export default function CheckoutPage() {
     setTimeout(async () => {
       setIsProcessing(false);
       
+      // Finaliser la commande dans le contexte Orders
+      finalizeDraftOrder(selectedPayment, finalTotal, selectedFee > 0 ? selectedFee : undefined);
+      
       // Si paiement en points, déduire les points
       if (selectedPayment === 'points') {
         await updateUserPoints(-finalTotal);
       }
       
+      // Vider le panier
       clearCart();
       
       const feeInfo = selectedPayment !== 'points' ? `\nFrais ${selectedPayment.toUpperCase()}: ${getSelectedMethodFee()} FCFA` : '';
@@ -113,9 +181,24 @@ export default function CheckoutPage() {
       Alert.alert(
         'Commande confirmée !',
         selectedPayment === 'points' 
-          ? `Commande payée avec ${finalTotal.toLocaleString()} points !\nVous recevrez une notification quand elle sera prête.`
-          : `Votre commande a été passée avec succès.${feeInfo}\nVous recevrez une notification quand elle sera prête.`,
-        [{ text: 'OK', onPress: handleGoBack }]
+          ? `Commande payée avec ${finalTotal.toLocaleString()} points !\nVous pouvez suivre votre commande dans l'onglet "Commandes".`
+          : `Votre commande a été passée avec succès.${feeInfo}\nVous pouvez suivre votre commande dans l'onglet "Commandes".`,
+        [
+          { 
+            text: 'Voir mes commandes', 
+            onPress: () => {
+              handleGoBack();
+              // Navigation vers l'onglet commandes après un délai
+              setTimeout(() => {
+                router.push('/(tabs)/orders');
+              }, 500);
+            }
+          },
+          {
+            text: 'OK',
+            onPress: handleGoBack
+          }
+        ]
       );
     }, 2000);
   };
@@ -175,10 +258,12 @@ export default function CheckoutPage() {
   
   // Gestionnaire pour appliquer une remise (Gold et Classic)
   const handleApplyDiscount = (discountPercentage: number, checkMinimum = false) => {
+    const correctedTotal = getCorrectCartTotal();
+    
     // Vérifier les conditions selon le type de membre
     if (checkMinimum) {
       const minimumRequired = user?.membershipType === 'gold' ? 80 : 70;
-      if (cartTotal <= minimumRequired) {
+      if (correctedTotal <= minimumRequired) {
         Alert.alert(
           "Remise non disponible", 
           `Cette remise nécessite un total de commande supérieur à ${minimumRequired} points.`
@@ -190,8 +275,8 @@ export default function CheckoutPage() {
     setGlobalDiscountPercentage(discountPercentage);
     
     // Calculer le total avec réduction
-    const discounted = Math.round(cartTotal * (1 - discountPercentage / 100));
-    setOriginalTotal(cartTotal);
+    const discounted = Math.round(correctedTotal * (1 - discountPercentage / 100));
+    setOriginalTotal(correctedTotal);
     setDiscountedTotal(discounted);
     
     // Enregistrer la remise dans la base de données (simulation)
@@ -214,7 +299,8 @@ export default function CheckoutPage() {
 
   // Fonction pour calculer le total final avec frais Mobile Money
   const calculateFinalTotal = () => {
-    const baseTotal = globalDiscountPercentage > 0 ? discountedTotal : cartTotal;
+    const correctedTotal = getCorrectCartTotal();
+    const baseTotal = globalDiscountPercentage > 0 ? discountedTotal : correctedTotal;
     
     // Ajouter les frais seulement si ce n'est pas un paiement en points
     if (selectedPayment !== 'points') {
@@ -237,10 +323,10 @@ export default function CheckoutPage() {
   if (cartItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
         
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, Platform.OS === 'android' && { paddingTop: StatusBar.currentHeight || 0 }]}>
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
@@ -265,10 +351,10 @@ export default function CheckoutPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, Platform.OS === 'android' && { paddingTop: StatusBar.currentHeight || 0 }]}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
@@ -277,7 +363,11 @@ export default function CheckoutPage() {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Informations de livraison */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Livraison</Text>
@@ -293,7 +383,7 @@ export default function CheckoutPage() {
 
         {/* Zone de réductions */}
         <DiscountSection
-          cartTotal={cartTotal}
+          cartTotal={correctedCartTotal}
           globalDiscountPercentage={globalDiscountPercentage}
           user={user}
           selectedPayment={selectedPayment}
@@ -304,58 +394,92 @@ export default function CheckoutPage() {
           goldMembership={membership}
         />
 
-        {/* Articles commandés */}
+        {/* Articles commandés - Barre déroulante */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Articles commandés ({cartItems.length})</Text>
-          {cartItems.map((item) => (
-            <View key={item.id} style={styles.orderItem}>
-              <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-              
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.productName}</Text>
-                <Text style={styles.providerName}>{item.providerName}</Text>
-                
-                {item.customizations && item.customizations.length > 0 && (
-                  <Text style={styles.customizations} numberOfLines={2}>
-                    {formatCustomizations(item.customizations)}
-                  </Text>
-                )}
-                
-                {item.extras && item.extras.length > 0 && (
-                  <Text style={styles.extras} numberOfLines={2}>
-                    Extras: {item.extras.map(extra => extra.name).join(', ')}
-                  </Text>
-                )}
-                
-                {item.couponCode && item.couponDiscount && (
-                  <Text style={styles.couponApplied}>
-                    Coupon appliqué: -{Math.round((item.basePrice * item.quantity * item.couponDiscount) / 100).toLocaleString()} FCFA ({item.couponDiscount}%)
-                  </Text>
-                )}
-
-                <View style={styles.itemFooter}>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity 
-                      style={styles.quantityControlButton}
-                      onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                    >
-                      <Minus size={16} color="#333" />
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity 
-                      style={styles.quantityControlButton}
-                      onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                    >
-                      <Plus size={16} color="#333" />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.itemPrice}>
-                    {item.totalPrice.toLocaleString()} pts
-                  </Text>
-                </View>
-              </View>
+          <TouchableOpacity 
+            style={styles.collapsibleHeader}
+            onPress={() => setIsOrderItemsExpanded(!isOrderItemsExpanded)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.sectionTitle}>Articles commandés ({cartItems.length})</Text>
+            {isOrderItemsExpanded ? (
+              <ChevronUp size={24} color="#333" />
+            ) : (
+              <ChevronDown size={24} color="#333" />
+            )}
+          </TouchableOpacity>
+          
+          {/* Aperçu compact quand fermé */}
+          {!isOrderItemsExpanded && (
+            <View style={styles.orderSummaryPreview}>
+              <Text style={styles.previewText}>
+                {cartItems.length} article{cartItems.length > 1 ? 's' : ''} • {correctedCartTotal.toLocaleString()} pts
+              </Text>
+              <Text style={styles.previewSubtext}>
+                Touchez pour voir les détails
+              </Text>
             </View>
-          ))}
+          )}
+
+          {/* Liste complète quand ouvert */}
+          {isOrderItemsExpanded && (
+            <View style={styles.orderItemsList}>
+              {cartItems.map((item) => (
+                <View key={item.id} style={styles.orderItem}>
+                  <Image source={{ uri: item.productImage }} style={styles.itemImage} />
+                  
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName}>{item.productName}</Text>
+                    <Text style={styles.providerName}>{item.providerName}</Text>
+                    
+                    {item.customizations && item.customizations.length > 0 && (
+                      <Text style={styles.customizations} numberOfLines={2}>
+                        {formatCustomizations(item.customizations)}
+                      </Text>
+                    )}
+                    
+                    {item.extras && item.extras.length > 0 && (
+                      <Text style={styles.extras} numberOfLines={2}>
+                        Extras: {item.extras.map(extra => extra.name).join(', ')}
+                      </Text>
+                    )}
+                    
+                    {item.couponCode && item.couponDiscount && (
+                      <Text style={styles.couponApplied}>
+                        Coupon appliqué: -{Math.round((item.basePrice * item.quantity * item.couponDiscount) / 100).toLocaleString()} FCFA ({item.couponDiscount}%)
+                      </Text>
+                    )}
+
+                    <View style={styles.itemFooter}>
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity 
+                          style={styles.quantityControlButton}
+                          onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                        >
+                          <Minus size={16} color="#333" />
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>{item.quantity}</Text>
+                        <TouchableOpacity 
+                          style={styles.quantityControlButton}
+                          onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          <Plus size={16} color="#333" />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.itemPrice}>
+                          {getDisplayPrice(item).toLocaleString()} pts
+                        </Text>
+                        <Text style={styles.itemPriceFcfa}>
+                          {pointsToFcfa(getDisplayPrice(item)).toLocaleString()} FCFA
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Méthode de paiement */}
@@ -421,49 +545,44 @@ export default function CheckoutPage() {
           ))}
         </View>
 
-        {/* Résumé final */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Résumé de la commande</Text>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Sous-total</Text>
-            <Text style={styles.summaryValue}>
-              {formatAmount(globalDiscountPercentage > 0 ? originalTotal : cartTotal)}
+
+      </ScrollView>
+
+      {/* Résumé fixe en bas - Zone verte compacte */}
+      <View style={styles.fixedSummaryContainer}>
+        <View style={styles.compactSummaryCard}>
+          {/* Prix de base */}
+          <View style={styles.compactPriceRow}>
+            <Text style={styles.compactLabel}>Prix de base</Text>
+            <Text style={styles.compactAmount}>
+              {pointsToFcfa(correctedCartTotal).toLocaleString()} FCFA
             </Text>
           </View>
 
+          {/* Réduction en FCFA (seulement si une réduction spécifique est appliquée) */}
           {globalDiscountPercentage > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: '#FF6B6B' }]}>
-                Remise ({globalDiscountPercentage}%)
+            <View style={styles.compactPriceRow}>
+              <Text style={styles.compactDiscountLabel}>
+                Réduction ({globalDiscountPercentage}%)
               </Text>
-              <Text style={[styles.summaryValue, { color: '#FF6B6B' }]}>
-                -{formatAmount(originalTotal - discountedTotal)}
-              </Text>
-            </View>
-          )}
-
-          {selectedPayment !== 'points' && getSelectedMethodFee() > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Frais {selectedPayment.toUpperCase()}
-              </Text>
-              <Text style={styles.summaryValue}>
-                +{getSelectedMethodFee()} FCFA
+              <Text style={styles.compactDiscountAmount}>
+                -{pointsToFcfa(originalTotal - discountedTotal).toLocaleString()} FCFA
               </Text>
             </View>
           )}
 
-          <View style={styles.summaryDivider} />
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total à payer</Text>
-            <Text style={styles.totalAmount}>
-              {formatAmount(calculateFinalTotal())}
+          {/* Prix final */}
+          <View style={styles.compactFinalRow}>
+            <Text style={styles.compactFinalLabel}>Total à payer</Text>
+            <Text style={styles.compactFinalAmount}>
+              {selectedPayment === 'points' 
+                ? `${calculateFinalTotal().toLocaleString()} pts`
+                : `${pointsToFcfa(calculateFinalTotal()).toLocaleString()} FCFA`
+              }
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Footer avec bouton de paiement */}
       <View style={styles.footer}>
@@ -505,6 +624,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   backButton: {
     padding: 8,
@@ -521,6 +646,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Espace pour la zone fixe + bouton
   },
   section: {
     marginBottom: 24,
@@ -676,44 +804,142 @@ const styles = StyleSheet.create({
     backgroundColor: '#00B14F',
   },
   summaryCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#E8F5E8',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#00B14F',
   },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  summaryRow: {
+  basePriceContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '500',
+  basePriceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#333',
   },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 12,
-  },
-  totalLabel: {
+  basePriceAmount: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  totalAmount: {
-    fontSize: 20,
+  discountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  discountLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B6B',
+  },
+  discountAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  feesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  feesLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  feesAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  finalPriceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#00B14F',
+  },
+  finalPriceLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  finalPriceAmount: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  fixedSummaryContainer: {
+    position: 'absolute',
+    bottom: 80, // Juste au-dessus du bouton de paiement
+    left: 20,
+    right: 20,
+    backgroundColor: 'transparent',
+    pointerEvents: 'box-none',
+  },
+  compactSummaryCard: {
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#00B14F',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  compactPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  compactLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#333',
+  },
+  compactAmount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+  },
+  compactDiscountLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#FF6B6B',
+  },
+  compactDiscountAmount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FF6B6B',
+  },
+  compactFinalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#00B14F',
+  },
+  compactFinalLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#00B14F',
+  },
+  compactFinalAmount: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#00B14F',
   },
@@ -777,5 +1003,48 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemPriceFcfa: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  orderSummaryPreview: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginBottom: 16,
+  },
+  previewText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  previewSubtext: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  orderItemsList: {
+    marginTop: 8,
   },
 });

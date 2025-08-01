@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import storage from '@/utils/storage';
 import { ExtraItem } from '@/data/extras';
+import { useOrders } from './OrdersContext';
 
 interface CartItem {
   id: string;
@@ -24,6 +25,10 @@ interface CartItem {
   totalPrice: number;
   providerId: string;
   providerName: string;
+  // Informations spécifiques aux réservations beauté
+  bookingDate?: string; // Date de la réservation (format ISO)
+  bookingTime?: string; // Heure de la réservation (ex: "14:30")
+  serviceType?: string; // Type de service (coiffure, ongles, etc.)
 }
 
 interface CartContextType {
@@ -86,10 +91,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addToCart = (newItem: Omit<CartItem, 'id'>) => {
     const itemId = `${newItem.productId}_${Date.now()}_${Math.random()}`;
     
-    setCartItems(prev => [...prev, {
-      ...newItem,
-      id: itemId
-    }]);
+    setCartItems(prev => {
+      const updated = [...prev, {
+        ...newItem,
+        id: itemId
+      }];
+      
+      // Déclencher la création/mise à jour du brouillon de commande
+      // Cette partie sera gérée par un hook personnalisé
+      return updated;
+    });
     
     return itemId; // Retourner l'ID pour pouvoir l'utiliser ailleurs
   };

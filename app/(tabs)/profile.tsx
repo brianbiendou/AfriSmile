@@ -22,7 +22,6 @@ import RewardsModal from '@/components/RewardsModal';
 import SimpleWalletModal from '@/components/SimpleWalletModal';
 import LogoutModal from '@/components/LogoutModal';
 import CartIcon from '@/components/CartIcon';
-import CartModal from '@/components/CartModal';
 import CheckoutModal from '@/components/CheckoutModal';
 import DatabaseTestTool from '@/components/DatabaseTestTool';
 import { pointsToFcfa, formatPointsWithFcfa } from '@/utils/pointsConversion';
@@ -33,7 +32,6 @@ export default function ProfileScreen() {
   const [walletModalVisible, setWalletModalVisible] = useState(false);
   const [rewardsModalVisible, setRewardsModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
-  const [cartModalVisible, setCartModalVisible] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [simpleWalletModalVisible, setSimpleWalletModalVisible] = useState(false);
   const [databaseTestVisible, setDatabaseTestVisible] = useState(false);
@@ -156,7 +154,7 @@ export default function ProfileScreen() {
             <Text style={styles.pointsText}>{formatPoints(user.points)}</Text>
           </View>
           
-          <CartIcon onPress={() => setCartModalVisible(true)} />
+          <CartIcon onPress={() => router.push('/cart')} />
         </View>
       </View>
 
@@ -297,15 +295,6 @@ export default function ProfileScreen() {
         onClose={() => setLogoutModalVisible(false)}
         onConfirm={handleConfirmLogout}
         userName={user.name}
-      />
-
-      <CartModal
-        visible={cartModalVisible}
-        onClose={() => setCartModalVisible(false)}
-        onCheckout={() => {
-          setCartModalVisible(false);
-          setCheckoutModalVisible(true);
-        }}
       />
 
       <CheckoutModal

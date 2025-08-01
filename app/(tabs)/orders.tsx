@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { Clock, CircleCheck as CheckCircle, Circle as XCircle, X, Wallet, MapPin, ShoppingCart, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrders } from '@/contexts/OrdersContext';
 import { getUserOrders, subscribeToUserOrders } from '@/lib/orders';
 import { useEffect } from 'react';
 import CartIcon from '@/components/CartIcon';
-import CartModal from '@/components/CartModal';
 import CheckoutModal from '@/components/CheckoutModal';
 import { Order } from '@/types/database';
 import { formatPointsWithFcfa } from '@/utils/pointsConversion';
@@ -23,59 +24,40 @@ import { formatPoints } from '@/utils/pointsConversion';
 export default function OrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [cartModalVisible, setCartModalVisible] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-  const [orders, setOrders] = useState([
-    {
-      id: '1',
-      user_id: 'default-user',
-      provider_id: '1',
-      status: 'delivered',
-      total_amount: 64, // 5000 FCFA en nouveaux points
-      discount_amount: 13, // 20% de réduction  
-      final_amount: 51, // Montant final
-      points_used: 51,
-      payment_method: 'points',
-      delivery_address: 'Cocody, Abidjan',
-      notes: null,
-      estimated_delivery: null,
-      delivered_at: new Date().toISOString(),
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // Il y a 2h
-      updated_at: new Date().toISOString(),
-      providers: {
-        business_name: 'Chez Tante Marie',
-        image_url: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg'
-      }
-    },
-    {
-      id: '2',
-      user_id: 'default-user',
-      provider_id: '2',
-      status: 'preparing',
-      total_amount: 856000, // Équivalent 10000 FCFA (salon de beauté)
-      discount_amount: 171200, // 20% de réduction
-      final_amount: 684800, // Montant final
-      points_used: 684800,
-      payment_method: 'points',
-      delivery_address: 'Cocody, Abidjan',
-      notes: 'Manucure française',
-      estimated_delivery: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // Dans 30min
-      delivered_at: null,
-      created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // Il y a 30min
-      updated_at: new Date().toISOString(),
-      providers: {
-        business_name: 'Beauty Palace',
-        image_url: 'https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg'
-      }
-    }
-  ]);
-  const [loading, setLoading] = useState(false);
 
-  const { cartCount } = useCart();
+  const { cartCount, clearCart, addToCart } = useCart();
   const { user } = useAuth();
+  const { orders, draftOrder, continueDraftOrder, clearDraftOrder } = useOrders();
+  const [loading, setLoading] = useState(false);
   
   // Points de l'utilisateur connecté
   const userPoints = user?.points || 0;
+
+  // Fonction pour continuer une commande en cours
+  const handleContinueDraftOrder = () => {
+    if (draftOrder) {
+      const draftItems = continueDraftOrder();
+      draftItems.forEach(item => {
+        addToCart({
+          productId: item.productId,
+          productName: item.productName,
+          productImage: item.productImage,
+          basePrice: item.basePrice,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          extras: item.extras,
+          couponCode: item.couponCode,
+          couponDiscount: item.couponDiscount,
+          totalPrice: item.totalPrice,
+          providerId: item.providerId,
+          providerName: item.providerName,
+        });
+      });
+      clearDraftOrder();
+      router.push('/cart');
+    }
+  };
 
   useEffect(() => {
     // Pas de chargement depuis la base de données - utiliser les données statiques
@@ -160,7 +142,7 @@ export default function OrdersScreen() {
             <Text style={styles.pointsText}>{formatPoints(userPoints)}</Text>
           </View>
            
-           <CartIcon onPress={() => setCartModalVisible(true)} />
+           <CartIcon onPress={() => router.push('/cart')} />
         </View>
       </View>
 
@@ -184,7 +166,7 @@ export default function OrdersScreen() {
               </View>
               <TouchableOpacity 
                 style={styles.viewCartButton}
-                onPress={() => setCartModalVisible(true)}
+                onPress={() => router.push('/cart')}
               >
                 <Text style={styles.viewCartButtonText}>Voir le panier</Text>
                 <ChevronRight size={16} color="#00B14F" />
@@ -192,6 +174,35 @@ export default function OrdersScreen() {
             </View>
             <Text style={styles.cartSubtitle}>
               {cartCount} article{cartCount > 1 ? 's' : ''} en attente de commande
+            </Text>
+          </View>
+        )}
+
+        {/* Section Commande en cours (brouillon) */}
+        {draftOrder && draftOrder.items.length > 0 && (
+          <View style={styles.draftOrderSection}>
+            <View style={styles.draftOrderHeader}>
+              <View style={styles.draftOrderInfo}>
+                <Clock size={20} color="#FF9500" />
+                <Text style={styles.draftOrderTitle}>Commande en cours</Text>
+                <View style={styles.draftOrderBadge}>
+                  <Text style={styles.draftOrderBadgeText}>{draftOrder.items.length}</Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={styles.continueDraftButton}
+                onPress={handleContinueDraftOrder}
+              >
+                <Text style={styles.continueDraftButtonText}>Continuer</Text>
+                <ChevronRight size={16} color="#FF9500" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.draftOrderSubtitle}>
+              {draftOrder.items.length} article{draftOrder.items.length > 1 ? 's' : ''} • {draftOrder.finalAmount.toLocaleString()} pts
+              {draftOrder.discountPercentage > 0 && ` (${draftOrder.discountPercentage}% de réduction)`}
+            </Text>
+            <Text style={styles.draftOrderNote}>
+              Finalisez votre commande pour la confirmer
             </Text>
           </View>
         )}
@@ -208,13 +219,15 @@ export default function OrdersScreen() {
           </View>
         ) : (
           orders.map((order) => {
-            const { date, time } = formatOrderDate(order.created_at);
-            const providerName = order.providers?.business_name || 'Prestataire';
-            const providerImage = order.providers?.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg';
+            const { date, time } = formatOrderDate(order.createdAt);
+            // Pour l'instant, utiliser le premier item pour récupérer le nom du prestataire
+            const firstItem = order.items[0];
+            const providerName = firstItem?.providerName || 'Prestataire';
+            const providerImage = firstItem?.productImage || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg';
             
             // Calculer les détails de la commande
-            const discountPercentage = Math.round((order.discount_amount / order.total_amount) * 100);
-            const cashbackPoints = Math.max(Math.round(order.final_amount * 0.01 * 85.59), 85); // 1% du montant, minimum 85 points (1 FCFA)
+            const discountPercentage = order.discountPercentage || 0;
+            const cashbackPoints = Math.max(Math.round(order.finalAmount * 0.01), 1); // 1% du montant, minimum 1 point
             
             return (
           <View key={order.id} style={styles.orderCard}>
@@ -232,7 +245,7 @@ export default function OrdersScreen() {
                   </Text>
                 </View>
                 <Text style={styles.paymentMethod}>
-                  {order.payment_method === 'points' ? 'Payé en points' : 'Payé au restaurant'}
+                  {order.paymentMethod === 'points' ? 'Payé en points' : `Payé par ${order.paymentMethod.toUpperCase()}`}
                 </Text>
               </View>
             </View>
@@ -240,8 +253,13 @@ export default function OrdersScreen() {
             <View style={styles.orderFooter}>
               <View style={styles.pricing}>
                 <Text style={styles.pointsUsedText}>
-                  {order.points_used > 0 ? `${order.points_used.toLocaleString()} pts utilisés` : 'Aucun point utilisé'}
+                  {order.finalAmount.toLocaleString()} pts • {order.items.length} article{order.items.length > 1 ? 's' : ''}
                 </Text>
+                {discountPercentage > 0 && (
+                  <Text style={styles.discountText}>
+                    Réduction de {discountPercentage}% appliquée
+                  </Text>
+                )}
               </View>
               <TouchableOpacity 
                 style={styles.detailsButton}
@@ -370,15 +388,6 @@ export default function OrdersScreen() {
           </View>
         </View>
       </Modal>
-
-      <CartModal
-        visible={cartModalVisible}
-        onClose={() => setCartModalVisible(false)}
-        onCheckout={() => {
-          setCartModalVisible(false);
-          setCheckoutModalVisible(true);
-        }}
-      />
 
       <CheckoutModal
         visible={checkoutModalVisible}
@@ -886,5 +895,73 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  draftOrderSection: {
+    backgroundColor: '#FFF9E6',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFE066',
+  },
+  draftOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  draftOrderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  draftOrderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF9500',
+    marginLeft: 8,
+  },
+  draftOrderBadge: {
+    backgroundColor: '#FF9500',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  draftOrderBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  continueDraftButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9500',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  continueDraftButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  draftOrderSubtitle: {
+    fontSize: 14,
+    color: '#FF9500',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  draftOrderNote: {
+    fontSize: 12,
+    color: '#CC7A00',
+    fontStyle: 'italic',
+  },
+  discountText: {
+    fontSize: 12,
+    color: '#00B14F',
+    fontWeight: '600',
   },
 });

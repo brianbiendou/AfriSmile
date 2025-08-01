@@ -54,9 +54,9 @@ const mockCustomizations: Customization[] = [
     maxSelections: 1,
     options: [
       { id: '1a', name: 'Riz blanc', price: 0, selected: true },
-      { id: '1b', name: 'Attiéké', price: 100, selected: false }, // FCFA
-      { id: '1c', name: 'Foutou', price: 100, selected: false }, // FCFA
-      { id: '1d', name: 'Placali', price: 100, selected: false }, // FCFA
+      { id: '1b', name: 'Attiéké', price: 1, selected: false }, // 1 point (100 FCFA ÷ 78.359)
+      { id: '1c', name: 'Foutou', price: 1, selected: false }, // 1 point 
+      { id: '1d', name: 'Placali', price: 1, selected: false }, // 1 point
     ]
   },
   {
@@ -67,7 +67,7 @@ const mockCustomizations: Customization[] = [
     options: [
       { id: '2a', name: 'Sauce graine', price: 0, selected: true },
       { id: '2b', name: 'Sauce claire', price: 0, selected: false },
-      { id: '2c', name: 'Sauce arachide', price: 100, selected: false }, // FCFA
+      { id: '2c', name: 'Sauce arachide', price: 1, selected: false }, // 1 point
       { id: '2d', name: 'Sauce tomate', price: 0, selected: false },
     ]
   },
@@ -77,10 +77,10 @@ const mockCustomizations: Customization[] = [
     required: false,
     maxSelections: 3,
     options: [
-      { id: '3a', name: 'Poisson fumé', price: 100, selected: false }, // FCFA
-      { id: '3b', name: 'Viande de bœuf', price: 200, selected: false }, // FCFA
-      { id: '3c', name: 'Poulet', price: 100, selected: false }, // FCFA
-      { id: '3d', name: 'Crevettes', price: 200, selected: false }, // FCFA
+      { id: '3a', name: 'Poisson fumé', price: 1, selected: false }, // 1 point
+      { id: '3b', name: 'Viande de bœuf', price: 3, selected: false }, // 3 points (200 FCFA ÷ 78.359)
+      { id: '3c', name: 'Poulet', price: 1, selected: false }, // 1 point
+      { id: '3d', name: 'Crevettes', price: 3, selected: false }, // 3 points
     ]
   },
   {
