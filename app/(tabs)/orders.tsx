@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Modal,
 } from 'react-native';
 import { Clock, CircleCheck as CheckCircle, Circle as XCircle, X, Wallet, MapPin, ShoppingCart, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
@@ -22,8 +21,6 @@ import { formatPointsWithFcfa } from '@/utils/pointsConversion';
 import { formatPoints } from '@/utils/pointsConversion';
 
 export default function OrdersScreen() {
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
 
   const { cartCount, clearCart, addToCart } = useCart();
@@ -123,8 +120,7 @@ export default function OrdersScreen() {
   };
 
   const handleOrderPress = (order: any) => {
-    setSelectedOrder(order);
-    setDetailModalVisible(true);
+    router.push(`/order-details?orderId=${order.id}`);
   };
 
   return (
@@ -198,7 +194,7 @@ export default function OrdersScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.draftOrderSubtitle}>
-              {draftOrder.items.length} article{draftOrder.items.length > 1 ? 's' : ''} • {draftOrder.finalAmount.toLocaleString()} pts
+              {draftOrder.items.length} article{draftOrder.items.length > 1 ? 's' : ''} • {draftOrder.finalAmount?.toLocaleString() || '0'} pts
               {draftOrder.discountPercentage > 0 && ` (${draftOrder.discountPercentage}% de réduction)`}
             </Text>
             <Text style={styles.draftOrderNote}>
@@ -253,7 +249,7 @@ export default function OrdersScreen() {
             <View style={styles.orderFooter}>
               <View style={styles.pricing}>
                 <Text style={styles.pointsUsedText}>
-                  {order.finalAmount.toLocaleString()} pts • {order.items.length} article{order.items.length > 1 ? 's' : ''}
+                  {order.finalAmount?.toLocaleString() || '0'} pts • {order.items?.length || 0} article{(order.items?.length || 0) > 1 ? 's' : ''}
                 </Text>
                 {discountPercentage > 0 && (
                   <Text style={styles.discountText}>
@@ -274,120 +270,6 @@ export default function OrdersScreen() {
         )}
         </View>
       </ScrollView>
-
-      {/* Modal de détails */}
-      <Modal
-        visible={detailModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setDetailModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Détails de la commande</Text>
-              <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
-                <X size={24} color="#8E8E8E" />
-              </TouchableOpacity>
-            </View>
-
-            {selectedOrder && (
-              <ScrollView style={styles.modalContent}>
-                {/* Articles commandés */}
-                <View style={styles.orderItemsModal}>
-                  <Text style={styles.itemsTitle}>Articles commandés:</Text>
-                  {selectedOrder.id === '1' ? (
-                    <>
-                      <Text style={styles.itemModal}>• Thiéboudiènne</Text>
-                      <Text style={styles.itemModal}>• Jus de gingembre</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={styles.itemModal}>• Manucure française</Text>
-                      <Text style={styles.itemModal}>• Pose de vernis</Text>
-                    </>
-                  )}
-                </View>
-
-                <View style={styles.priceComparison}>
-                  <Text style={styles.comparisonTitle}>Informations de paiement</Text>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Méthode de paiement:</Text>
-                    <Text style={[styles.paymentMethodModal, { color: '#8B5CF6', fontWeight: 'bold' }]}>
-                      Points
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Points utilisés:</Text>
-                    <Text style={[styles.pointsUsedModal, { color: '#10B981', fontWeight: 'bold' }]}>
-                      {selectedOrder.points_used.toLocaleString()} pts
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Réduction appliquée:</Text>
-                    <Text style={[styles.discountModal, { color: '#EF4444', fontWeight: 'bold' }]}>
-                      -{Math.round((selectedOrder.discount_amount / selectedOrder.total_amount) * 100)}%
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Cashback reçu:</Text>
-                    <Text style={[styles.cashbackModal, { color: '#10B981', fontWeight: 'bold' }]}>
-                      +{Math.max(Math.round(selectedOrder.final_amount * 0.01 * 85.59), 85).toLocaleString()} pts
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Résumé des économies */}
-                <View style={styles.savingsSection}>
-                  <Text style={styles.savingsTitle}>💰 Vos économies</Text>
-                  <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel}>Montant économisé:</Text>
-                    <Text style={styles.savingsAmount}>
-                      {selectedOrder.discount_amount.toLocaleString()} FCFA
-                    </Text>
-                  </View>
-                  <View style={styles.savingsRow}>
-                    <Text style={styles.savingsLabel}>Points gagnés:</Text>
-                    <Text style={styles.savingsPoints}>+{Math.max(Math.round(selectedOrder.final_amount * 0.01 * 85.59), 85).toLocaleString()} pts</Text>
-                  </View>
-                </View>
-
-                {/* Informations de livraison */}
-                <View style={styles.deliverySection}>
-                  <Text style={styles.deliveryTitle}>📍 Livraison</Text>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Adresse:</Text>
-                    <Text style={styles.deliveryText}>
-                      {selectedOrder.delivery_address || 'Cocody, Abidjan'}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Statut:</Text>
-                    <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status) }]}>
-                      {getStatusText(selectedOrder.status)}
-                    </Text>
-                  </View>
-                  
-                  {selectedOrder.delivered_at && (
-                    <View style={styles.priceRow}>
-                      <Text style={styles.priceLabel}>Livré le:</Text>
-                      <Text style={styles.deliveryText}>
-                        {formatOrderDate(selectedOrder.delivered_at).date} à {formatOrderDate(selectedOrder.delivered_at).time}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
 
       <CheckoutModal
         visible={checkoutModalVisible}
