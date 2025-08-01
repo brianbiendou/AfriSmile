@@ -5,6 +5,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  StatusBar,
+  SafeAreaView,
+  Platform,
 } from 'react-native';
 import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -108,6 +111,17 @@ export default function BeautyCalendarScreen() {
         {
           text: 'Continuer les achats',
           style: 'cancel',
+          onPress: () => {
+            // Retourner vers les services de beauté du prestataire
+            if (providerId) {
+              router.replace({
+                pathname: '/beauty/services/[providerId]',
+                params: { providerId: providerId as string, returnToModal: 'true' }
+              });
+            } else {
+              router.back();
+            }
+          }
         },
         {
           text: 'Voir le panier',
@@ -121,20 +135,24 @@ export default function BeautyCalendarScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: 'Choisir une date',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <ArrowLeft size={24} color="#000" />
-            </TouchableOpacity>
-          ),
+          headerShown: false, // Désactiver le header par défaut
         }}
       />
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header personnalisé qui bouge avec le scroll */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Choisir une date</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
         {/* Résumé de la prestation */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Réservation</Text>
@@ -225,11 +243,40 @@ export default function BeautyCalendarScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 12 : 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  headerSpacer: {
+    width: 40, // Même largeur que le bouton retour pour centrer le titre
+  },
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',

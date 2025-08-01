@@ -8,9 +8,12 @@ import {
   TextInput,
   Alert,
   Animated,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { X, Bell, Lock, Eye, Globe, Mail, Smartphone } from 'lucide-react-native';
+import { ArrowLeft, Bell, Lock, Eye, Globe, Mail, Smartphone } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -114,24 +117,26 @@ export default function SettingsScreen() {
   };
   
   return (
-    <>
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" translucent />
       <Stack.Screen
         options={{
-          title: "Paramètres",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: 16 }}
-            >
-              <X size={24} color="#00B14F" />
-            </TouchableOpacity>
-          ),
+          headerShown: false, // Désactiver le header par défaut
         }}
       />
-      <ScrollView
+      <ScrollView 
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
       >
+        {/* Header personnalisé qui bouge avec le scroll */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Paramètres</Text>
+          <View style={styles.headerSpacer} />
+        </View>
         <Animated.View
           style={[styles.content, { opacity: fadeAnim }]}
         >
@@ -456,11 +461,37 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FAFAFA',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',

@@ -76,7 +76,17 @@ export default function ExtrasScreen() {
       [
         { 
           text: 'Continuer les achats', 
-          onPress: () => router.replace('/') 
+          onPress: () => {
+            // Retourner vers la page du prestataire au lieu de l'accueil
+            if (providerId) {
+              router.replace({
+                pathname: '/order/[providerId]',
+                params: { providerId: providerId, returnToModal: 'true' }
+              });
+            } else {
+              router.replace('/');
+            }
+          }
         },
         { 
           text: 'Voir le panier', 
@@ -94,7 +104,17 @@ export default function ExtrasScreen() {
       [
         { 
           text: 'Continuer les achats', 
-          onPress: () => router.replace('/') 
+          onPress: () => {
+            // Retourner vers la page du prestataire au lieu de l'accueil
+            if (providerId) {
+              router.replace({
+                pathname: '/order/[providerId]',
+                params: { providerId: providerId, returnToModal: 'true' }
+              });
+            } else {
+              router.replace('/');
+            }
+          }
         },
         { 
           text: 'Voir le panier', 

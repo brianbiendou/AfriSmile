@@ -13,8 +13,11 @@ import { useState, useEffect } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle, ArrowLeft, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PaymentScreen() {
+  const { addUserPoints } = useAuth();
+  
   const { 
     amount, 
     points, 
@@ -86,6 +89,12 @@ export default function PaymentScreen() {
       description: isGoldMembership ? transactionTitle : undefined,
       planId: isGoldMembership ? planId as string : undefined,
     };
+
+    // Ajouter les points au solde de l'utilisateur si c'est une recharge
+    if (!isGoldMembership && points) {
+      const pointsToAdd = parseInt(points as string, 10);
+      addUserPoints(pointsToAdd);
+    }
 
     // Sauvegarder dans AsyncStorage pour persister
     try {

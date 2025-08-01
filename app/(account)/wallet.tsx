@@ -10,9 +10,12 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { X, Smartphone, Plus, CreditCard, Wallet, History, TrendingUp } from 'lucide-react-native';
+import { ArrowLeft, Smartphone, Plus, CreditCard, Wallet, History, TrendingUp } from 'lucide-react-native';
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { pointsToFcfa, fcfaToPoints, formatPointsWithFcfa, isValidRechargeAmount } from '@/utils/pointsConversion';
@@ -599,27 +602,34 @@ export default function WalletScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Mon Portefeuille",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: 16 }}
-            >
-              <X size={24} color="#00B14F" />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
-      <View style={styles.container}>
-        {/* FlatList principal qui gère tous les contenus */}
-        <FlatList
-          data={listData}
-          renderItem={renderListItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+      <SafeAreaView style={styles.safeContainer}>
+        <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+        <View style={styles.container}>
+          {/* FlatList principal qui gère tous les contenus avec header inclus */}
+          <FlatList
+            data={listData}
+            renderItem={renderListItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View style={styles.customHeader}>
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  style={styles.backButton}
+                >
+                  <ArrowLeft size={24} color="#00B14F" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Mon Portefeuille</Text>
+                <View style={styles.headerSpacer} />
+              </View>
+            }
+          />
+        </View>
+      </SafeAreaView>
       
       {/* Animation de succès */}
       {showSuccessAnimation && (
@@ -996,5 +1006,36 @@ const styles = StyleSheet.create({
     width: 8,
     height: 16,
     borderRadius: 4,
+  },
+  // Nouveaux styles pour le header personnalisé
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+    marginBottom: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 40, // Même largeur que le bouton de retour pour centrer le titre
   },
 });

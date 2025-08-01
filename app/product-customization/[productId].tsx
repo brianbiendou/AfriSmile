@@ -8,9 +8,11 @@ import {
   Dimensions,
   SafeAreaView,
   StatusBar,
+  Animated,
+  Alert,
 } from 'react-native';
 import { X, Plus, Minus, ShoppingCart, Check, ArrowLeft } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { fcfaToPoints } from '@/utils/pointsConversion';
 import { pointsToFcfa } from '@/utils/pointsConversion';
@@ -100,7 +102,7 @@ const availableExtras: Extra[] = [
 ];
 
 export default function ProductCustomizationPage() {
-  const { productId, providerId } = useLocalSearchParams();
+  const { productId, providerId, sourceRoute } = useLocalSearchParams();
   const router = useRouter();
   const { addToCart } = useCart();
   
@@ -108,6 +110,11 @@ export default function ProductCustomizationPage() {
   const [extras, setExtras] = useState<Extra[]>(availableExtras);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // États pour l'animation d'ajout au panier
+  const [showCartAnimation, setShowCartAnimation] = useState(false);
+  const cartAnimationValue = useRef(new Animated.Value(0)).current;
+  const cartAnimationOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadProduct();
@@ -145,6 +152,31 @@ export default function ProductCustomizationPage() {
     ));
   };
 
+  // Animation d'ajout au panier
+  const startCartAnimation = () => {
+    setShowCartAnimation(true);
+    cartAnimationValue.setValue(0);
+    cartAnimationOpacity.setValue(1);
+
+    Animated.parallel([
+      Animated.timing(cartAnimationValue, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(cartAnimationOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      setShowCartAnimation(false);
+    });
+  };
+
   const calculateTotalPrice = () => {
     if (!product) return 0;
     
@@ -171,6 +203,9 @@ export default function ProductCustomizationPage() {
     if (!product) return;
 
     setIsAdding(true);
+    
+    // Démarrer l'animation d'ajout au panier
+    startCartAnimation();
     
     setTimeout(() => {
       const selectedExtras = extras.filter(extra => extra.selected);
@@ -200,8 +235,55 @@ export default function ProductCustomizationPage() {
       });
       
       setIsAdding(false);
-      router.back(); // Retourner à la page précédente
-    }, 500);
+      
+      // Afficher un message de confirmation
+      Alert.alert(
+        '✅ Ajouté au panier !',
+        `${quantity} x ${product.name} ajouté${quantity > 1 ? 's' : ''} à votre panier.`,
+        [
+          {
+            text: 'Continuer mes achats',
+            onPress: () => {
+              // Déterminer la page d'origine selon le sourceRoute et le providerId
+              if (providerId) {
+                // Si l'utilisateur vient de la page invendus
+                if (sourceRoute === 'unsold') {
+                  router.replace({
+                    pathname: '/unsold/[providerId]',
+                    params: { providerId: providerId as string, returnToModal: 'true' }
+                  });
+                }
+                // Pour les produits beauté, aller vers les services de beauté
+                else if (product.category && (
+                  product.category.toLowerCase().includes('beauté') || 
+                  product.category.toLowerCase().includes('beauty') ||
+                  product.category.toLowerCase().includes('soin')
+                )) {
+                  router.replace({
+                    pathname: '/beauty/services/[providerId]',
+                    params: { providerId: providerId as string, returnToModal: 'true' }
+                  });
+                } else {
+                  // Pour les produits alimentaires, aller vers la page commande
+                  router.replace({
+                    pathname: '/order/[providerId]',
+                    params: { providerId: providerId as string, returnToModal: 'true' }
+                  });
+                }
+              } else {
+                router.back();
+              }
+            },
+            style: 'default'
+          },
+          {
+            text: 'Voir le panier',
+            onPress: () => router.push('/cart'),
+            style: 'default'
+          }
+        ]
+      );
+    }, 800); // Attendre la fin de l'animation
   };
 
   if (!product) {
@@ -219,44 +301,46 @@ export default function ProductCustomizationPage() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header avec image de fond */}
-      <View style={styles.headerSection}>
-        <Image source={{ uri: product.image }} style={styles.backgroundImage} />
-        <View style={styles.headerOverlay}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.productHeader}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productDescription}>{product.description}</Text>
-            <View style={styles.priceContainer}>
-              <Text style={styles.productPrice}>{product.points} pts</Text>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceBadgeText}>Prix réduit</Text>
+      {/* Contenu principal avec header inclus dans le scroll */}
+      <ScrollView style={styles.mainScrollView} showsVerticalScrollIndicator={false}>
+        {/* Header avec image de fond */}
+        <View style={styles.headerSection}>
+          <Image source={{ uri: product.image }} style={styles.backgroundImage} />
+          <View style={styles.headerOverlay}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <ArrowLeft size={24} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.productHeader}>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productDescription}>{product.description}</Text>
+              <View style={styles.priceContainer}>
+                <Text style={styles.productPrice}>{product.points} pts</Text>
+                <View style={styles.priceBadge}>
+                  <Text style={styles.priceBadgeText}>Prix réduit</Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* Contenu principal */}
-      <ScrollView style={styles.contentSection} showsVerticalScrollIndicator={false}>
-        {/* Informations sur le plat */}
-        <View style={styles.dishInfoCard}>
-          <Text style={styles.dishInfoTitle}>Informations sur le plat</Text>
-          <Text style={styles.dishInfoText}>
-            ✨ Plat déjà préparé et prêt à être dégusté
-          </Text>
-          <Text style={styles.dishInfoText}>
-            ⏰ Récupération immédiate possible
-          </Text>
-          <Text style={styles.dishInfoText}>
-            💰 Prix spécial invendu avec réduction importante
-          </Text>
-          <Text style={styles.dishInfoText}>
-            🍽️ Accompagnements et sauce déjà inclus dans le plat
-          </Text>
-        </View>
+        {/* Contenu principal dans une section */}
+        <View style={styles.contentSection}>
+          {/* Informations sur le plat */}
+          <View style={styles.dishInfoCard}>
+            <Text style={styles.dishInfoTitle}>Informations sur le plat</Text>
+            <Text style={styles.dishInfoText}>
+              ✨ Plat déjà préparé et prêt à être dégusté
+            </Text>
+            <Text style={styles.dishInfoText}>
+              ⏰ Récupération immédiate possible
+            </Text>
+            <Text style={styles.dishInfoText}>
+              💰 Prix spécial invendu avec réduction importante
+            </Text>
+            <Text style={styles.dishInfoText}>
+              🍽️ Accompagnements et sauce déjà inclus dans le plat
+            </Text>
+          </View>
 
         {/* Prix détaillé */}
         <View style={styles.priceDetailCard}>
@@ -341,6 +425,7 @@ export default function ProductCustomizationPage() {
             ))}
           </View>
         </View>
+        </View>
       </ScrollView>
 
       {/* Footer fixe */}
@@ -379,6 +464,42 @@ export default function ProductCustomizationPage() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Animation d'ajout au panier */}
+      {showCartAnimation && (
+        <Animated.View
+          style={[
+            styles.cartAnimationContainer,
+            {
+              opacity: cartAnimationOpacity,
+              transform: [
+                {
+                  translateX: cartAnimationValue.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [screenWidth / 2 - 25, screenWidth - 60],
+                  }),
+                },
+                {
+                  translateY: cartAnimationValue.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [screenHeight - 180, 60],
+                  }),
+                },
+                {
+                  scale: cartAnimationValue.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [1, 1.2, 0.3],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.cartAnimationBall}>
+            <ShoppingCart size={20} color="#fff" />
+          </View>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -392,6 +513,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  
+  // ScrollView principal
+  mainScrollView: {
+    flex: 1,
   },
   
   // Header avec image de fond
@@ -464,7 +590,6 @@ const styles = StyleSheet.create({
 
   // Contenu principal
   contentSection: {
-    flex: 1,
     padding: 20,
     paddingBottom: 100, // Pour laisser place au footer fixe
   },
@@ -818,5 +943,24 @@ const styles = StyleSheet.create({
   extraSelectionIndicatorActive: {
     borderColor: '#4CAF50',
     backgroundColor: '#4CAF50',
+  },
+
+  // Styles pour l'animation d'ajout au panier
+  cartAnimationContainer: {
+    position: 'absolute',
+    zIndex: 1000,
+  },
+  cartAnimationBall: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
 });

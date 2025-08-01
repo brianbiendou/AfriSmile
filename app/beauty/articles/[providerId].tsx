@@ -83,8 +83,23 @@ const mockBeautyProducts = [
 ];
 
 export default function BeautyArticlesScreen() {
-  const { providerId } = useLocalSearchParams();
+  const { providerId, returnToModal } = useLocalSearchParams();
   const { addToCart } = useCart();
+
+  // Fonction pour gérer le retour
+  const handleBack = () => {
+    if (returnToModal === 'true') {
+      // Revenir à la page d'accueil et rouvrir le modal du prestataire
+      router.replace({
+        pathname: '/',
+        params: { 
+          openProvider: providerId as string
+        }
+      });
+    } else {
+      router.back();
+    }
+  };
 
   const handleAddToCart = (product: any) => {
     if (!product.inStock) {
@@ -111,6 +126,10 @@ export default function BeautyArticlesScreen() {
         {
           text: 'Continuer mes achats',
           style: 'cancel',
+          onPress: () => {
+            // Rester sur la page des articles beauté du prestataire
+            // Ne rien faire, l'utilisateur reste sur cette page
+          }
         },
         {
           text: 'Voir le panier',
@@ -132,7 +151,7 @@ export default function BeautyArticlesScreen() {
           headerShown: true,
           title: 'Articles Beauté',
           headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={handleBack}>
               <ArrowLeft size={24} color="#000" />
             </TouchableOpacity>
           ),

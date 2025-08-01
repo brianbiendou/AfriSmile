@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
+  SafeAreaView,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, MapPin, Star, Clock } from 'lucide-react-native';
@@ -74,7 +75,22 @@ const beautyServices: BeautyService[] = [
 ];
 
 export default function BeautyServicesScreen() {
-  const { providerId } = useLocalSearchParams();
+  const { providerId, returnToModal } = useLocalSearchParams();
+
+  // Fonction pour gérer le retour
+  const handleBack = () => {
+    if (returnToModal === 'true') {
+      // Revenir à la page d'accueil et rouvrir le modal du prestataire
+      router.replace({
+        pathname: '/',
+        params: { 
+          openProvider: providerId as string
+        }
+      });
+    } else {
+      router.back();
+    }
+  };
 
   const handleServiceSelect = (service: BeautyService) => {
     // Naviguer vers la page de calendrier avec les paramètres du service
@@ -91,25 +107,24 @@ export default function BeautyServicesScreen() {
   };
 
   return (
-    <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" translucent />
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: 'Services de Beauté',
-          headerStyle: {
-            backgroundColor: '#FAFAFA',
-          },
-          headerTintColor: '#000',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <ArrowLeft size={24} color="#000" />
-            </TouchableOpacity>
-          ),
+          headerShown: false, // Désactiver le header par défaut
         }}
       />
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header personnalisé qui bouge avec le scroll */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <ArrowLeft size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Services de Beauté</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
         {/* Informations du salon */}
         <View style={styles.providerSection}>
           <Image source={{ uri: mockProvider.image }} style={styles.providerImage} />
@@ -185,11 +200,40 @@ export default function BeautyServicesScreen() {
           </Text>
         </View>
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 12 : 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',

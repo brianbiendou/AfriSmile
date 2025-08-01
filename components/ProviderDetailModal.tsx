@@ -201,12 +201,13 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
 
   const handleShowMenu = () => {
     if (provider?.id) {
-      // Fermer le modal d'abord
-      onClose();
-      // Naviguer vers la page de commande avec les paramètres
+      // Naviguer vers la page de commande avec le paramètre de retour au modal
       router.push({
         pathname: '/order/[providerId]',
-        params: { providerId: provider.id }
+        params: { 
+          providerId: provider.id,
+          returnToModal: 'true'
+        }
       });
     }
   };
@@ -216,29 +217,35 @@ export default function ProviderDetailModal({ visible, onClose, provider, userPo
   };
 
   const handleShowUnsoldProducts = () => {
-    // Fermer le modal actuel et naviguer vers la page des invendus
-    onClose();
+    // Naviguer vers la page des invendus avec le paramètre de retour au modal
     router.push({
       pathname: '/unsold/[providerId]',
-      params: { providerId: provider?.id || '' }
+      params: { 
+        providerId: provider?.id || '',
+        returnToModal: 'true'
+      }
     });
   };
 
   const handleShowBooking = () => {
-    // Fermer le modal actuel et naviguer vers la page de sélection des services beauté
-    onClose();
+    // Naviguer vers la page de sélection des services beauté avec le paramètre de retour au modal
     router.push({
       pathname: '/beauty/services/[providerId]',
-      params: { providerId: provider?.id || '' }
+      params: { 
+        providerId: provider?.id || '',
+        returnToModal: 'true'
+      }
     });
   };
 
   const handleShowArticles = () => {
-    // Fermer le modal actuel et naviguer vers la page des articles beauté
-    onClose();
+    // Naviguer vers la page des articles beauté avec le paramètre de retour au modal
     router.push({
       pathname: '/beauty/articles/[providerId]',
-      params: { providerId: provider?.id || '' }
+      params: { 
+        providerId: provider?.id || '',
+        returnToModal: 'true'
+      }
     });
   };
 

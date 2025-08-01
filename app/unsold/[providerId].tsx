@@ -28,13 +28,28 @@ interface UnsoldProduct {
 }
 
 export default function UnsoldProductsScreen() {
-  const { providerId } = useLocalSearchParams<{ providerId: string }>();
+  const { providerId, returnToModal } = useLocalSearchParams<{ providerId: string; returnToModal?: string }>();
   const { addToCart } = useCart();
   const { user } = useAuth();
   
   const [unsoldProducts, setUnsoldProducts] = useState<UnsoldProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<{ [key: string]: string }>({});
+
+  // Fonction pour gérer le retour
+  const handleBack = () => {
+    if (returnToModal === 'true') {
+      // Revenir à la page d'accueil et rouvrir le modal du prestataire
+      router.replace({
+        pathname: '/',
+        params: { 
+          openProvider: providerId
+        }
+      });
+    } else {
+      router.back();
+    }
+  };
 
   useEffect(() => {
     if (providerId) {
@@ -111,7 +126,11 @@ export default function UnsoldProductsScreen() {
       // Sinon, naviguer vers la page de personnalisation
       router.push({
         pathname: '/product-customization/[productId]',
-        params: { productId: product.id, providerId: providerId }
+        params: { 
+          productId: product.id, 
+          providerId: providerId,
+          sourceRoute: 'unsold' // Indiquer que l'utilisateur vient de la page invendus
+        }
       });
     }
   };
@@ -132,7 +151,24 @@ export default function UnsoldProductsScreen() {
     
     Alert.alert(
       'Ajouté au panier', 
-      `${product.name} a été ajouté à votre commande à prix réduit !`
+      `${product.name} a été ajouté à votre commande à prix réduit !`,
+      [
+        {
+          text: 'Continuer mes achats',
+          style: 'cancel',
+          onPress: () => {
+            // Rester sur la page des invendus du prestataire
+            // Ne rien faire, l'utilisateur reste sur cette page
+          }
+        },
+        {
+          text: 'Voir le panier',
+          style: 'default',
+          onPress: () => {
+            router.push('/cart');
+          }
+        }
+      ]
     );
   };
 
@@ -207,7 +243,7 @@ export default function UnsoldProductsScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
         >
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>

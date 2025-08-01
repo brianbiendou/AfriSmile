@@ -8,9 +8,12 @@ import {
   Alert,
   ScrollView,
   Share as RNShare,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { X, Download, Share, QrCode } from 'lucide-react-native';
+import { ArrowLeft, Download, Share, QrCode } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -65,24 +68,23 @@ export default function QRCodeScreen() {
   };
 
   return (
-    <>
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" translucent />
       <Stack.Screen
         options={{
-          title: "Mon QR Code",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: 16 }}
-            >
-              <X size={24} color="#00B14F" />
-            </TouchableOpacity>
-          ),
+          headerShown: false, // Désactiver le header par défaut
         }}
       />
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-      >
+
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header personnalisé qui bouge avec le scroll */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mon QR Code</Text>
+          <View style={styles.headerSpacer} />
+        </View>
         <Animated.View 
           style={[
             styles.content,
@@ -94,7 +96,6 @@ export default function QRCodeScreen() {
         >
           <View style={styles.qrContainer}>
             <View style={styles.qrHeader}>
-              <Text style={styles.qrTitle}>Mon QR Code personnel</Text>
               <Text style={styles.qrDescription}>
                 Scannez ce code pour accéder rapidement à votre profil et bénéficier de 
                 réductions exclusives
@@ -179,14 +180,39 @@ export default function QRCodeScreen() {
           </View>
         </Animated.View>
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 16 : 16,
+    backgroundColor: '#FAFAFA',
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  headerSpacer: {
+    width: 40, // Même largeur que le bouton back pour centrer le titre
   },
   contentContainer: {
     padding: 20,

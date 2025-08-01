@@ -45,10 +45,25 @@ interface Offer {
 }
 
 export default function OrderScreen() {
-  const { providerId } = useLocalSearchParams<{ providerId: string }>();
+  const { providerId, returnToModal } = useLocalSearchParams<{ providerId: string; returnToModal?: string }>();
   const { addToCart } = useCart();
   const { user } = useAuth();
   const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'pickup' | 'group'>('delivery');
+
+  // Fonction pour gérer le retour
+  const handleBack = () => {
+    if (returnToModal === 'true') {
+      // Revenir à la page d'accueil et rouvrir le modal du prestataire
+      router.replace({
+        pathname: '/',
+        params: { 
+          openProvider: providerId
+        }
+      });
+    } else {
+      router.back();
+    }
+  };
 
   // Données d'exemple pour le prestataire (à remplacer par des données réelles)
   const provider = {
@@ -313,7 +328,27 @@ export default function OrderScreen() {
         });
         
         // Afficher un message de confirmation
-        Alert.alert('Ajouté au panier', `${item.name} a été ajouté à votre commande`);
+        Alert.alert(
+          'Ajouté au panier', 
+          `${item.name} a été ajouté à votre commande`,
+          [
+            {
+              text: 'Continuer mes achats',
+              style: 'cancel',
+              onPress: () => {
+                // Rester sur la page des commandes du prestataire
+                // Ne rien faire, l'utilisateur reste sur cette page
+              }
+            },
+            {
+              text: 'Voir le panier',
+              style: 'default',
+              onPress: () => {
+                router.push('/cart');
+              }
+            }
+          ]
+        );
       }
     } else {
       // Articles complexes : naviguer vers la page de personnalisation
@@ -421,7 +456,7 @@ export default function OrderScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={handleBack}
           >
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>

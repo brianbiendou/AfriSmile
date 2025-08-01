@@ -28,7 +28,7 @@ import { formatPoints } from '@/utils/pointsConversion';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { showCart } = useLocalSearchParams<{ showCart?: string }>();
+  const { showCart, openProvider } = useLocalSearchParams<{ showCart?: string; openProvider?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<ProviderCompat | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -268,6 +268,20 @@ export default function HomeScreen() {
       router.push('/cart');
     }
   }, [showCart]);
+
+  // Gérer l'ouverture automatique du modal prestataire
+  useEffect(() => {
+    if (openProvider) {
+      // Trouver le prestataire correspondant
+      const provider = providers.find(p => p.id === openProvider);
+      if (provider) {
+        setSelectedProvider(provider);
+        setDetailModalVisible(true);
+        // Nettoyer le paramètre pour éviter la réouverture constante
+        router.setParams({ openProvider: undefined });
+      }
+    }
+  }, [openProvider, providers]);
 
   // Défilement automatique des bannières
   useEffect(() => {
